@@ -470,13 +470,52 @@ function pageUnderSnip() {
   return pg ? +pg.dataset.page : S.page;
 }
 
-$('#snipAsk').onclick = () => {
+$('#snipAsk').onclick = async () => {
   const p = pageUnderSnip();
-  S.snap = { page: p, w: Math.round(snip.w), h: Math.round(snip.h) };
+  const w = Math.round(snip.w);
+  const h = Math.round(snip.h);
+  const relX = Math.round(snip.x);
+  const relY = Math.round(snip.y);
+
+  // --- Trích xuất nội dung slide từ PAGES[] data (không cần OCR) ---
+  // PAGES là data structure đã có từ data.js, chứa text thật của từng slide
+  const slideData = (typeof PAGES !== 'undefined') ? PAGES.find(pg => pg.n === p) : null;
+  
+  let slideTextContent = '';
+  if (slideData) {
+    const parts = [];
+    if (slideData.title)   parts.push(`Tiêu đề: ${slideData.title}`);
+    if (slideData.sub)     parts.push(`Phụ đề: ${slideData.sub}`);
+    if (slideData.quote)   parts.push(`Trích dẫn: ${slideData.quote}`);
+    if (slideData.items)   parts.push(`Nội dung:\n${Array.isArray(slideData.items) ? slideData.items.join('\n') : slideData.items}`);
+    if (slideData.bullets) parts.push(`Bullet points:\n${Array.isArray(slideData.bullets) ? slideData.bullets.join('\n') : slideData.bullets}`);
+    if (slideData.cols)    parts.push(`Cột/Bảng:\n${JSON.stringify(slideData.cols)}`);
+    if (slideData.stats)   parts.push(`Số liệu:\n${JSON.stringify(slideData.stats)}`);
+    if (slideData.lines)   parts.push(`Dòng:\n${Array.isArray(slideData.lines) ? slideData.lines.join('\n') : slideData.lines}`);
+    slideTextContent = parts.join('\n');
+  }
+  
+  // Fallback: lấy text từ DOM element nếu không có trong PAGES
+  if (!slideTextContent) {
+    const pageEl = document.getElementById('pg' + p);
+    if (pageEl) slideTextContent = (pageEl.innerText || '').slice(0, 800);
+  }
+
+  S.snap = { page: p, w, h };
   closeSnip();
   openTutor(true);
   renderAttach();
-  send(`Giải thích giúp mình vùng vừa chọn ở trang ${p}`, { page: p, region: true });
+
+  // Gửi metadata + slide text thật vào opts để Agent dùng
+  send(`Giải thích giúp mình vùng vừa chọn ở trang ${p}`, {
+    page: p,
+    region: true,
+    w,
+    h,
+    x: relX,
+    y: relY,
+    slideText: slideTextContent.slice(0, 800)
+  });
 };
 $('#snipNote').onclick = () => {
   const p = pageUnderSnip();
@@ -550,352 +589,213 @@ $('#spNote').onclick = () => {
 /* =============================================================
    TUTOR CHAT
    ============================================================= */
-/* ---- AI_CALL: điểm duy nhất sẽ nối model thật ở CP3 ---- */
-async function mockAnswer(q, opts = {}) {
-  const apiKey = localStorage.getItem('deepseek_api_key');
-  if (!apiKey) {
-    const s = q.toLowerCase();
-    if (opts.region) return withPage(ANSWERS.region, opts.page);
-    if (/deadline|hạn nộp|nộp bài|điểm số|bao nhiêu điểm|link nộp/.test(s)) return ANSWERS.outofscope;
-    if (s.replace(/[^a-zà-ỹ0-9]/gi, '').length < 12) return ANSWERS.clarify;
-    if (/yếu tố|framework|6\+3|actor|boundary|trang 67/.test(s)) return ANSWERS.framework;
-    if (/rule|workflow|agent|cấp độ/.test(s)) return ANSWERS.levels;
-    if (/problem statement|lát cắt|một câu|viết bài toán/.test(s)) return ANSWERS.statement;
-    if (/lịch sử|nguồn gốc|ai phát minh|năm nào|tác giả gốc/.test(s)) return ANSWERS.lowconf;
-    return withPage(ANSWERS.generic, opts.page || S.page);
-  }
+/* ---- AI_CALL: DeepSeek Agent với 6 Tool Calls ---- */
 
-  // AI REAL CALL WITH DEEPSEEK TOOL USE / FUNCTION CALLING
-  const SYSTEM_INSTRUCTION = `
-Bạn là Agent Trợ Giúp Học Tập thông minh của khóa học AI Product.
-Nhiệm vụ chính: Hỗ trợ học viên tóm tắt bài giảng hoặc giải thích hình ảnh trên slide, đảm bảo câu trả lời hoàn toàn chính xác dựa trên slide và transcript.
-
-LUỒNG HOẠT ĐỘNG BẮT BUỘC (EXECUTION FLOW):
-1. Gọi \`classify_intent\` đầu tiên để xác định ý định của học viên.
-2. Nếu ý định là "clarify" (mơ hồ hoặc thiếu vùng chọn/ảnh crop cần thiết), hãy dừng lại và hỏi lại học viên một cách cụ thể để làm rõ.
-3. Nếu ý định là "summary":
-   - Gọi \`get_knowledge_units\` để lấy các đơn vị kiến thức thuộc phạm vi bài học.
-   - Gọi \`retrieve_lesson_evidence\` để tra cứu slide và transcript liên quan.
-4. Nếu ý định là "explain_image":
-   - Gọi \`analyze_selected_region\` để phân tích hình ảnh và tọa độ crop.
-   - Gọi \`retrieve_lesson_evidence\` để lấy thêm ngữ cảnh transcript bài học.
-5. Sau khi có đủ minh chứng (evidence), hãy viết ra các tuyên bố (claims) chính.
-6. Gọi \`verify_claims\` để kiểm tra chéo các tuyên bố với nguồn tài liệu thu thập được. Nếu có claim nào không được hỗ trợ (supported = False), hãy sửa lại hoặc loại bỏ tuyên bố đó để tránh bịa đặt.
-7. Gọi \`record_trace\` để ghi lại lịch sử thực thi của Agent.
-8. Trả về kết quả cuối cùng cho học viên dưới dạng đối tượng JSON (Bắt buộc trả về chuỗi JSON thô, không nằm trong code block markdown):
-{
-  "conf": 95, 
-  "body": ["Đoạn giải thích 1...", "Đoạn giải thích 2..."],
-  "sources": [{"page": 12, "text": "Trích dẫn dòng text thực tế trong bài giảng..."}],
-  "kind": "answered" 
+// Fallback mock khi không có API key
+function mockAnswer(q, opts = {}) {
+  const s = q.toLowerCase();
+  if (opts.region) return withPage(ANSWERS.region, opts.page);
+  if (/deadline|hạn nộp|nộp bài|điểm số|bao nhiêu điểm|link nộp/.test(s)) return ANSWERS.outofscope;
+  if (s.replace(/[^a-zà-ỹ0-9]/gi, '').length < 12) return ANSWERS.clarify;
+  if (/yếu tố|framework|6\+3|actor|boundary|trang 67/.test(s)) return ANSWERS.framework;
+  if (/rule|workflow|agent|cấp độ/.test(s)) return ANSWERS.levels;
+  if (/problem statement|lát cắt|một câu|viết bài toán/.test(s)) return ANSWERS.statement;
+  if (/lịch sử|nguồn gốc|ai phát minh|năm nào|tác giả gốc/.test(s)) return ANSWERS.lowconf;
+  return withPage(ANSWERS.generic, opts.page || S.page);
 }
-*(Nếu từ chối, đặt kind = "refuse", nếu cần làm rõ đặt kind = "clarify")*
-`;
 
-  const tools = [
-    {
-      type: "function",
-      function: {
-        name: "classify_intent",
-        description: "Phân loại ý định từ prompt của học viên: tóm tắt bài giảng (summary), giải thích hình ảnh/vùng khoanh (explain_image), hoặc câu hỏi mơ hồ thiếu context (clarify).",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            prompt: { type: "STRING" },
-            context: { type: "OBJECT" }
-          },
-          required: ["prompt", "context"]
-        }
-      }
-    },
-    {
-      type: "function",
-      function: {
-        name: "get_knowledge_units",
-        description: "Lấy danh sách các đơn vị kiến thức của bài học theo phạm vi chỉ định.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            lesson_id: { type: "STRING" },
-            scope: { type: "STRING" }
-          },
-          required: ["lesson_id", "scope"]
-        }
-      }
-    },
-    {
-      type: "function",
-      function: {
-        name: "analyze_selected_region",
-        description: "Phân tích hình ảnh slide đầy đủ cùng với vùng crop (tọa độ bbox) để xác định thành phần được hỏi.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            full_image: { type: "STRING" },
-            crop_image: { type: "STRING" },
-            bbox: { type: "ARRAY", items: { type: "NUMBER" } },
-            prompt: { type: "STRING" }
-          },
-          required: ["full_image", "crop_image", "bbox", "prompt"]
-        }
-      }
-    },
-    {
-      type: "function",
-      function: {
-        name: "retrieve_lesson_evidence",
-        description: "Tìm kiếm slide text, OCR hình ảnh và transcript liên quan đến bài học và câu hỏi truy vấn.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            lesson_id: { type: "STRING" },
-            query: { type: "STRING" },
-            image_id: { type: "STRING" }
-          },
-          required: ["lesson_id", "query"]
-        }
-      }
-    },
-    {
-      type: "function",
-      function: {
-        name: "verify_claims",
-        description: "Kiểm tra từng tuyên bố trong bài viết có được các nguồn hỗ trợ hay không để tránh bịa đặt.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            claims: { type: "ARRAY", items: { type: "STRING" } },
-            sources: { type: "ARRAY", items: { type: "OBJECT" } }
-          },
-          required: ["claims", "sources"]
-        }
-      }
-    },
-    {
-      type: "function",
-      function: {
-        name: "record_trace",
-        description: "Lưu lại trace vết thực thi của Agent (ý định, lệnh gọi tool, nguồn và kết quả) để debug và đánh giá.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            intent: { type: "STRING" },
-            tool_calls: { type: "ARRAY", items: { type: "OBJECT" } },
-            sources: { type: "ARRAY", items: { type: "OBJECT" } },
-            result: { type: "STRING" }
-          },
-          required: ["intent", "tool_calls", "sources", "result"]
-        }
-      }
-    }
-  ];
-
-  try {
-    const url = "https://api.deepseek.com/chat/completions";
-    const pageNum = opts.page || S.page;
-    let promptText = `Trang slide học viên đang xem: ${pageNum}\n`;
-    if (opts.region) {
-      promptText += `[Học viên đã khoanh vùng chọn trên slide kích thước ${opts.w}x${opts.h}]\n`;
-    }
-    promptText += `Câu hỏi của học viên: ${q}`;
-
-    const contextData = {
-      lesson_id: "Day02",
-      has_crop: opts.region ? true : false,
-      image_payload: opts.region ? { page: pageNum, w: opts.w, h: opts.h } : null,
-      current_slide: pageNum
-    };
-
-    // Khởi tạo messages lịch sử cuộc gọi
-    let messages = [
-      { role: "system", content: SYSTEM_INSTRUCTION },
-      { role: "user", content: promptText }
-    ];
-
-    // Lần gọi 1
-    let response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages,
-        tools,
-        temperature: 0.1
-      })
-    });
-
-    if (!response.ok) throw new Error("Lỗi kết nối API: " + response.statusText);
-    let resData = await response.json();
-    let message = resData.choices[0].message;
-
-    // Vòng lặp xử lý tool calls (tối đa 6 lượt gọi)
-    let loopCount = 0;
-    let executedToolCalls = [];
-    let collectedSources = [];
-    let detectedIntent = "unknown";
-
-    while (message.tool_calls && loopCount < 6) {
-      loopCount++;
-      const toolCalls = message.tool_calls;
-      messages.push(message);
-
-      for (const toolCall of toolCalls) {
-        const funcName = toolCall.function.name;
-        const args = JSON.parse(toolCall.function.arguments);
-        const toolCallId = toolCall.id;
-
-        console.log(`[Tool Call] Model yêu cầu gọi hàm: ${funcName} với tham số:`, args);
-        executedToolCalls.push({ step: loopCount, tool: funcName, args });
-
-        let functionResponse = {};
-        if (funcName === "classify_intent") {
-          const p = args.prompt || q;
-          const ctx = args.context || contextData;
-
-          const p_lower = p.toLowerCase();
-          const has_crop = ctx.has_crop || ctx.image_payload !== null;
-          if ((p_lower.includes("hình này") || p_lower.includes("bảng này") || p_lower.includes("sơ đồ này") || p_lower.includes("phần khoanh")) && !has_crop) {
-            functionResponse = { intent: "clarify", reason: "Học viên hỏi về hình ảnh/vùng chọn nhưng chưa quét/crop ảnh." };
-          } else if (p_lower.includes("tóm tắt") || p_lower.includes("tóm gọn") || p_lower.includes("khái quát") || p_lower.includes("tổng hợp") || p_lower.includes("đầu mục")) {
-            functionResponse = { intent: "summary", reason: "Yêu cầu tóm tắt toàn bài hoặc một phần bài học." };
-          } else if (has_crop || p_lower.includes("sơ đồ") || p_lower.includes("hình vẽ") || p_lower.includes("biểu đồ") || p_lower.includes("code")) {
-            functionResponse = { intent: "explain_image", reason: "Yêu cầu giải thích hình ảnh hoặc một vùng trên slide." };
-          } else {
-            functionResponse = { intent: "summary", reason: "Mặc định xử lý theo dạng truy vấn nội dung bài giảng." };
-          }
-          detectedIntent = functionResponse.intent;
-        }
-        else if (funcName === "get_knowledge_units") {
-          const lid = args.lesson_id || "Day02";
-          const sc = args.scope || "all";
-          functionResponse = {
-            lesson_id: lid,
-            scope: sc,
-            units: [
-              { id: "KU-01", name: "LLM & Foundation Models", slide_range: "1-15" },
-              { id: "KU-02", name: "Rule vs Workflow vs Agent", slide_range: "16-30" },
-              { id: "KU-03", name: "Context Management & Memory Injection", slide_range: "31-45" },
-              { id: "KU-04", name: "Problem Statement Template (6+3)", slide_range: "46-76" }
-            ]
-          };
-        }
-        else if (funcName === "analyze_selected_region") {
-          const fi = args.full_image || "slide_full.png";
-          const ci = args.crop_image || "slide_crop.png";
-          const bb = args.bbox || [0, 0, 100, 100];
-          const pr = args.prompt || q;
-
-          let desc = "Vùng chọn chứa một phần sơ đồ hoặc code đang được khoanh đỏ trên slide.";
-          if (bb) {
-            desc += ` Tọa độ bbox: ${JSON.stringify(bb)}.`;
-          }
-          functionResponse = {
-            description: desc,
-            detected_elements: ["sơ đồ kiến trúc", "đoạn code ví dụ"],
-            annotation: "Cần đối chiếu với transcript bài giảng để giải thích chính xác."
-          };
-        }
-        else if (funcName === "retrieve_lesson_evidence") {
-          const lid = args.lesson_id || "Day02";
-          const q_arg = args.query || q;
-          const query_lower = q_arg.toLowerCase();
-
-          const slide_results = PAGES.filter(p => {
-            const text = JSON.stringify(p).toLowerCase();
-            return text.includes(query_lower);
-          }).slice(0, 3).map(p => ({
-            type: "slide",
-            source: "Day 02 Slide",
-            page: p.n,
-            text: p.title + ": " + (p.items || p.cols || p.stats || p.bullets || p.quote || p.lines || "")
-          }));
-          functionResponse = { query: q_arg, evidences: slide_results };
-          collectedSources.push(...slide_results);
-        }
-        else if (funcName === "verify_claims") {
-          const cls = args.claims || [];
-          const srcs = args.sources || collectedSources;
-
-          const verification = cls.map(claim => {
-            let supported = false;
-            let matched_source = "N/A";
-            for (const src of srcs) {
-              const src_text = src.text || src.content || "";
-              const matches = claim.toLowerCase().split(/\s+/).filter(word => word.length > 4 && src_text.toLowerCase().includes(word)).length;
-              if (matches >= 2) {
-                supported = true;
-                matched_source = src.page ? `trang ${src.page}` : (src.section || "N/A");
-                break;
-              }
-            }
-            return { claim, supported, matched_source };
-          });
-          functionResponse = { verification, all_valid: verification.every(v => v.supported) };
-        }
-        else if (funcName === "record_trace") {
-          const it = args.intent || detectedIntent;
-          const tcs = args.tool_calls || executedToolCalls;
-          const scs = args.sources || collectedSources;
-          const res = args.result || "";
-
-          console.log("[Agent Trace Recorded]", { intent: it, tool_calls: tcs, sources: scs, result: res });
-          functionResponse = { status: "success", trace_recorded: true };
-        }
-
-        messages.push({
-          role: "tool",
-          tool_call_id: toolCallId,
-          name: funcName,
-          content: JSON.stringify(functionResponse)
-        });
-      }
-
-      // Gọi lại DeepSeek
-      response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: "deepseek-chat",
-          messages,
-          tools,
-          temperature: 0.1
-        })
-      });
-
-      if (!response.ok) throw new Error("Lỗi kết nối API ở bước gọi tool: " + response.statusText);
-      resData = await response.json();
-      message = resData.choices[0].message;
-    }
-
-    if (!message.content) throw new Error("Không thể tạo văn bản phản hồi.");
-    const responseText = message.content;
-    const parsed = JSON.parse(responseText.trim());
-    return withPage(parsed, pageNum);
-  } catch (err) {
-    console.error("DeepSeek Tool Calling Agent Error:", err);
-    return withPage({
-      conf: 50,
-      body: [
-        "Không thể kết nối đến DeepSeek API. Vui lòng kiểm tra lại API Key hoặc mạng của bạn.",
-        "Lưu ý: Nếu chạy trực tiếp bằng file:/// (không qua server), trình duyệt có thể chặn cuộc gọi do chính sách CORS bảo mật của DeepSeek.",
-        "Chi tiết lỗi: " + err.message
-      ],
-      sources: []
-    }, opts.page || S.page);
-  }
-}
 function withPage(a, p) {
   return {
     ...a,
     body: a.body.map(x => x.replaceAll('{p}', p)),
     sources: (a.sources || []).map(s => ({ ...s, page: s.page || p })),
   };
+}
+
+// Định nghĩa 6 tools gửi lên DeepSeek
+const AGENT_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'classify_intent',
+      description: 'Phân loại ý định từ prompt của học viên: tóm tắt bài giảng (summary), giải thích hình ảnh/vùng khoanh (explain_image), hoặc câu hỏi mơ hồ thiếu context cần hỏi lại (clarify), hoặc ngoài phạm vi khóa học (refuse).',
+      parameters: { type: 'object', properties: { prompt: { type: 'string', description: 'Câu hỏi gốc của học viên' }, context: { type: 'object', description: 'Ngữ cảnh: has_crop, current_slide, lesson_id' } }, required: ['prompt', 'context'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_knowledge_units',
+      description: 'Lấy danh sách các đơn vị kiến thức (knowledge units) của bài học theo phạm vi chỉ định để chuẩn bị tóm tắt.',
+      parameters: { type: 'object', properties: { lesson_id: { type: 'string' }, scope: { type: 'string', description: 'full_lesson | chapter | topic' } }, required: ['lesson_id', 'scope'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'analyze_selected_region',
+      description: 'Phân tích vùng crop trên slide (bbox toạ độ) để xác định thành phần học viên đang hỏi: sơ đồ, bảng, code, biểu đồ, v.v.',
+      parameters: { type: 'object', properties: { page: { type: 'integer' }, bbox: { type: 'array', items: { type: 'number' }, description: '[x, y, w, h] toạ độ vùng chọn' }, prompt: { type: 'string' } }, required: ['page', 'bbox', 'prompt'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'retrieve_lesson_evidence',
+      description: 'Tìm kiếm slide text và transcript liên quan đến câu hỏi trong bài giảng để lấy bằng chứng hỗ trợ câu trả lời.',
+      parameters: { type: 'object', properties: { lesson_id: { type: 'string' }, query: { type: 'string', description: 'Từ khoá hoặc chủ đề cần tra cứu' }, page_hint: { type: 'integer', description: 'Trang slide gợi ý (không bắt buộc)' } }, required: ['lesson_id', 'query'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'verify_claims',
+      description: 'Kiểm tra từng tuyên bố (claim) trong câu trả lời dự kiến có được các nguồn slide/transcript hỗ trợ hay không, để tránh hallucination.',
+      parameters: { type: 'object', properties: { claims: { type: 'array', items: { type: 'string' }, description: 'Danh sách các tuyên bố cần kiểm chứng' }, sources: { type: 'array', items: { type: 'object' }, description: 'Bằng chứng đã thu thập từ retrieve_lesson_evidence' } }, required: ['claims', 'sources'] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'record_trace',
+      description: 'Ghi lại vết thực thi của Agent (intent, tool_calls, sources, result) để phục vụ debug và đánh giá chất lượng.',
+      parameters: { type: 'object', properties: { intent: { type: 'string' }, tool_calls_summary: { type: 'array', items: { type: 'string' } }, result_kind: { type: 'string', description: 'answered | clarify | refuse | error' } }, required: ['intent', 'tool_calls_summary', 'result_kind'] }
+    }
+  }
+];
+
+// Thực thi tool cục bộ (JS side)
+function runTool(name, args, q, opts, pageNum) {
+  if (name === 'classify_intent') {
+    const p = (args.prompt || q).toLowerCase();
+    const hasCrop = opts.region ? true : false;
+    if ((p.includes('hình này') || p.includes('bảng này') || p.includes('sơ đồ này') || p.includes('phần khoanh') || p.includes('vùng này')) && !hasCrop)
+      return { intent: 'clarify', reason: 'Học viên hỏi về vùng ảnh nhưng chưa chọn/crop vùng trên slide.' };
+    if (/deadline|hạn nộp|nộp bài|điểm số|link nộp|lịch thi/.test(p))
+      return { intent: 'refuse', reason: 'Câu hỏi ngoài phạm vi khóa học.' };
+    if (p.includes('tóm tắt') || p.includes('tóm gọn') || p.includes('khái quát') || p.includes('tổng hợp') || p.includes('đầu mục'))
+      return { intent: 'summary' };
+    if (hasCrop || p.includes('sơ đồ') || p.includes('biểu đồ') || p.includes('code') || p.includes('hình vẽ'))
+      return { intent: 'explain_image' };
+    return { intent: 'summary', reason: 'Mặc định truy vấn nội dung bài giảng.' };
+  }
+  if (name === 'get_knowledge_units') {
+    return { lesson_id: args.lesson_id, scope: args.scope, units: [
+      { id: 'KU-01', name: 'LLM & Foundation Models', slides: '1-15' },
+      { id: 'KU-02', name: 'Rule vs Workflow vs Agent', slides: '16-30' },
+      { id: 'KU-03', name: 'Context Management & Memory', slides: '31-45' },
+      { id: 'KU-04', name: 'Problem Statement Template (6+3)', slides: '46-76' }
+    ]};
+  }
+  if (name === 'analyze_selected_region') {
+    const bb = args.bbox || [0, 0, 0, 0];
+    return { page: args.page || pageNum, bbox: bb, description: `Vùng chọn tọa độ [${bb.join(', ')}] trên slide trang ${args.page || pageNum}. Có thể là sơ đồ kiến trúc, bảng so sánh, hoặc đoạn code minh hoạ.`, prompt: args.prompt };
+  }
+  if (name === 'retrieve_lesson_evidence') {
+    const queryLow = (args.query || q).toLowerCase();
+    const hits = PAGES.filter(p => JSON.stringify(p).toLowerCase().includes(queryLow)).slice(0, 4);
+    return { query: args.query, evidences: hits.map(p => ({ type: 'slide', page: p.n, text: (p.title || '') + ': ' + JSON.stringify(p.items || p.cols || p.bullets || p.quote || p.lines || '').slice(0, 200) })) };
+  }
+  if (name === 'verify_claims') {
+    const srcs = args.sources || [];
+    return { results: (args.claims || []).map(claim => {
+      const hit = srcs.find(s => { const t = (s.text || '').toLowerCase(); return claim.toLowerCase().split(/\s+/).filter(w => w.length > 4 && t.includes(w)).length >= 2; });
+      return { claim, supported: !!hit, source: hit ? `trang ${hit.page}` : null };
+    })};
+  }
+  if (name === 'record_trace') {
+    console.info('[Agent Trace]', args);
+    return { status: 'ok' };
+  }
+  return { error: 'unknown tool' };
+}
+
+// Agent chính: gọi DeepSeek với tool use, max 6 vòng
+async function callDeepSeekAgent(q, opts = {}) {
+  const apiKey = localStorage.getItem('deepseek_api_key');
+  if (!apiKey) return null; // fallback sang mock
+
+  const pageNum = opts.page || S.page;
+  const SYSTEM = `Bạn là Agent Trợ Giúp Học Tập thông minh của khóa học AI Product.
+Nhiệm vụ: Hỗ trợ học viên tóm tắt bài giảng hoặc giải thích nội dung slide, đảm bảo câu trả lời chính xác dựa trên slide và transcript.
+
+LUỒNG BẮT BUỘC:
+1. Gọi classify_intent → xác định ý định.
+2. Nếu clarify: hỏi lại ngay, không gọi tool khác.
+3. Nếu refuse: từ chối lịch sự.
+4. Nếu summary: gọi get_knowledge_units → retrieve_lesson_evidence → verify_claims → record_trace → trả kết quả.
+5. Nếu explain_image: gọi analyze_selected_region → retrieve_lesson_evidence → verify_claims → record_trace → trả kết quả.
+
+ĐẦU RA CUỐI CÙNG (JSON thuần, không markdown code block):
+{ "conf": <0-100>, "body": ["đoạn 1...", "đoạn 2..."], "sources": [{"page": N, "text": "trích dẫn..."}], "kind": "answered" }
+kind có thể là: answered | clarify | refuse`;
+
+  let userContent;
+  
+  if (opts.region && opts.slideText) {
+    // Có vùng snip + text nội dung slide: gửi context đầy đủ cho DeepSeek
+    userContent = [
+      { type: 'text', text: `Trang slide học viên đang xem: ${pageNum}\nHọc viên đã kéo chọn vùng ${opts.w}×${opts.h}px tại toạ độ (${opts.x}, ${opts.y}) trên slide.` },
+      { type: 'text', text: `Nội dung đầy đủ của slide trang ${pageNum}:\n---\n${opts.slideText}\n---\nDựa vào nội dung này, hãy giải thích vùng học viên đang hỏi.` },
+      { type: 'text', text: `Câu hỏi: ${q}` }
+    ];
+  } else if (opts.region) {
+    // Có vùng snip nhưng không có text slide
+    userContent = `Trang slide học viên đang xem: ${pageNum}\n[Học viên đã khoanh vùng ${opts.w || '?'}×${opts.h || '?'}px trên slide]\nCâu hỏi: ${q}`;
+  } else {
+    userContent = `Trang slide học viên đang xem: ${pageNum}\nCâu hỏi: ${q}`;
+  }
+
+  let messages = [{ role: 'system', content: SYSTEM }, { role: 'user', content: userContent }];
+  const modelName = 'deepseek-chat';
+
+  for (let loop = 0; loop < 6; loop++) {
+    const res = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: modelName, messages, tools: AGENT_TOOLS, tool_choice: 'auto', temperature: 0.1 })
+    });
+    if (!res.ok) throw new Error(`DeepSeek API lỗi ${res.status}: ${res.statusText}`);
+    const data = await res.json();
+    const msg = data.choices[0].message;
+    messages.push(msg);
+
+    if (!msg.tool_calls || msg.tool_calls.length === 0) {
+      // Model đã trả lời dạng text cuối cùng
+      if (!msg.content) throw new Error('Không có nội dung phản hồi từ model.');
+      const raw = msg.content.trim()
+        .replace(/^```(?:json)?\s*/, '')
+        .replace(/\s*```$/, '');
+      // Nếu model trả về JSON đúng format thì parse, ngược lại đóng gói thành format chuẩn
+      try {
+        const parsed = JSON.parse(raw);
+        // Đảm bảo có đủ field cần thiết
+        return {
+          conf: parsed.conf ?? 85,
+          body: Array.isArray(parsed.body) ? parsed.body : [String(parsed.body || raw)],
+          sources: parsed.sources || [],
+          kind: parsed.kind || 'answered'
+        };
+      } catch (_) {
+        // DeepSeek trả về text thuần — bọ vào body mà không báo lỗi
+        return {
+          conf: 80,
+          body: [raw],
+          sources: [],
+          kind: 'answered'
+        };
+      }
+    }
+
+    // Thực thi các tool call và gửi kết quả trả về
+    for (const tc of msg.tool_calls) {
+      const args = JSON.parse(tc.function.arguments);
+      console.log(`[Tool] ${tc.function.name}`, args);
+      const result = runTool(tc.function.name, args, q, opts, pageNum);
+      messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+    }
+  }
+  throw new Error('Agent vượt quá 6 vòng lặp tool call.');
 }
 
 async function send(text, opts = {}) {
@@ -911,17 +811,32 @@ async function send(text, opts = {}) {
   S.chat.push({ role: 'typing' });
   renderChat();
 
-  await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
+  // Dùng setTimeout để render typing bubble trước khi thực thi async
+  await new Promise(r => setTimeout(r, 50));
 
   try {
-    S.chat.pop(); // remove typing
-    if (failing) throw new Error("simulated network error");
+    if (failing) throw new Error('simulated network error');
 
-    // Call mockAnswer (supports async API calls)
-    const a = await mockAnswer(text, { ...opts, page });
+    const hasKey = !!localStorage.getItem('deepseek_api_key');
+    let a;
+    if (hasKey) {
+      // Gọi DeepSeek Agent thật
+      a = await callDeepSeekAgent(text, { ...opts, page });
+      if (!a) a = mockAnswer(text, { ...opts, page });
+      else a = withPage(a, page);
+    } else {
+      await new Promise(r => setTimeout(r, 900 + Math.random() * 500));
+      a = mockAnswer(text, { ...opts, page });
+    }
+
+    // Xóa typing bubble và hiển thị kết quả
+    S.chat.pop();
     S.chat.push({ role: 'ai', data: a, ctxPage: page });
   } catch (err) {
-    S.chat.push({ role: 'ai', error: true, retry: { text, opts } });
+    console.error('Agent error:', err);
+    // Xóa typing bubble và hiển lỗi thực sự (không chỉ "mô phỏng")
+    S.chat.pop();
+    S.chat.push({ role: 'ai', error: true, errMsg: err.message, retry: { text, opts } });
   } finally {
     S.busy = false;
     renderChat();
@@ -946,10 +861,16 @@ function renderChat() {
         <div class="bubble"><div class="typing"><i></i><i></i><i></i></div></div></div>`;
     }
     if (m.error) {
+      const isCors = (m.errMsg || '').toLowerCase().includes('failed to fetch') || (m.errMsg || '').toLowerCase().includes('network');
+      const isSimulated = (m.errMsg || '').includes('simulated');
+      let hint = '';
+      if (isCors) hint = `<p style="font-size:11px;color:var(--fg2);margin:4px 0 0">⚠️ Lỗi CORS/mạng — Nếu đang mở file trực tiếp (file://), hãy chạy qua server thay vì double-click. Hoặc cài CORS Unblock extension cho Chrome.</p>`;
+      else if (m.errMsg && !isSimulated) hint = `<p style="font-size:11px;color:var(--fg2);margin:4px 0 0">Chi tiết: ${esc(m.errMsg)}</p>`;
+      const label = isSimulated ? 'Mô phỏng lỗi mạng' : isCors ? 'Lỗi kết nối' : 'Lỗi Agent';
       return `<div class="msg-ai">
-        <div class="ai-meta"><span class="state err">${t('failed')}</span></div>
-        <div class="bubble"><p>Không gọi được trợ lý (mô phỏng lỗi mạng). Câu hỏi của bạn vẫn được giữ nguyên.</p>
-        <div class="chips"><button class="qchip" data-retry="${i}">${t('retry')}</button></div></div></div>`;
+        <div class="ai-meta"><span class="state err">${label}</span></div>
+        <div class="bubble"><p>Không gọi được trợ lý. Câu hỏi của bạn vẫn được giữ nguyên.</p>${hint}
+        <div class="chips"><button class="qchip" data-retry="${i}">${t('retry')}</button><button class="qchip" onclick="openKeyModal()">🔑 Kiểm tra API Key</button></div></div></div>`;
     }
     const a = m.data;
     const isClarify = a.kind === 'clarify', isRefuse = a.kind === 'refuse', low = a.conf > 0 && a.conf < 60;
@@ -1159,10 +1080,43 @@ $('#btnClear').onclick = () => {
   };
 };
 
-
+$('#chipPage').onclick = () => openNotesModal();
+$('#prevPage').onclick = () => goPage(S.page - 1);
+$('#nextPage').onclick = () => goPage(S.page + 1);
 
 $('#tglSidebar').onclick = () => $('#workspace').classList.toggle('side-off');
 $('#tglTutor').onclick = () => openTutor(false);
+
+// Nút cấu hình DeepSeek API Key (ẩn trong header, trigger qua phím tắt K hoặc footer)
+document.addEventListener('keydown', e => {
+  if (e.key === 'k' && !e.ctrlKey && !e.metaKey && !e.target.matches('input,textarea')) openKeyModal();
+});
+
+function updateAiBadge() {
+  const badge = document.getElementById('aiModeBadge');
+  if (!badge) return;
+  const hasKey = !!localStorage.getItem('deepseek_api_key');
+  badge.textContent = hasKey ? '🤖 AI thật' : '🔵 Mock';
+  badge.style.background = hasKey ? 'var(--accent)' : 'var(--border)';
+  badge.style.color = hasKey ? '#fff' : 'var(--fg2)';
+}
+
+function openKeyModal() {
+  const cur = localStorage.getItem('deepseek_api_key') || '';
+  openModal('🔑 Cấu hình DeepSeek API Key',
+    `<p style="margin:0 0 10px">API Key được lưu tại localStorage của trình duyệt, <b>không gửi về server</b>.</p>
+     <input type="password" id="dsKeyInput" class="note-input" placeholder="sk-..." value="${cur}" style="width:100%;box-sizing:border-box;font-family:monospace">
+     <p style="margin:8px 0 0;font-size:12px;color:var(--fg2)">Để trống → dùng dữ liệu giả lập (mock). Có key → gọi DeepSeek API thật.</p>`,
+    `<button class="btn" data-close>Huỷ</button><button class="btn primary" id="saveKeyBtn">Lưu Key</button>`
+  );
+  document.getElementById('saveKeyBtn').onclick = () => {
+    const v = document.getElementById('dsKeyInput').value.trim();
+    if (v) { localStorage.setItem('deepseek_api_key', v); toast('ok', '✅ Đã lưu API Key — sẽ gọi DeepSeek AI thật!'); }
+    else { localStorage.removeItem('deepseek_api_key'); toast('warn', '🔵 Đã xóa Key — chuyển sang mock data.'); }
+    updateAiBadge();
+    closeModal();
+  };
+}
 
 $('#btnTheme').onclick = () => {
   const dark = document.documentElement.dataset.theme === 'dark';
@@ -1210,4 +1164,9 @@ S.chat = SEED_CHAT.map(m => m.role === 'user'
 renderChat();
 applyLang();
 applyZoom();
-setTimeout(() => toast('ok', 'Prototype CP2 · dữ liệu và câu trả lời AI đều là mock'), 600);
+updateAiBadge();
+setTimeout(() => {
+  const hasKey = !!localStorage.getItem('deepseek_api_key');
+  if (hasKey) toast('ok', '🤖 DeepSeek AI Agent đã sẵn sàng! Nhấn K để đổi API Key.');
+  else toast('warn', 'Mock mode — Nhấn phím K để nhập DeepSeek API Key và bật AI thật.');
+}, 600);

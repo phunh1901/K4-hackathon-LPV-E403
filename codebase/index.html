@@ -1,233 +1,344 @@
 <!doctype html>
 <html lang="vi" data-theme="light">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VLearn · Học liệu môn học</title>
-<link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VLearn · Học liệu môn học</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Tự động nạp DeepSeek API Key vào localStorage nếu chưa có.
+       Key này được lấy từ file .env. Người dùng có thể đổi bằng phím K. -->
+  <script>
+    (function () {
+      var KEY = 'deepseek_api_key';
+      // Chỉ set nếu chưa có key hoặc key rỗng — tránh ghi đè key user đã sửa
+      if (!localStorage.getItem(KEY)) {
+        localStorage.setItem(KEY, 'sk-668f1d008daa49ed860105076f8e743e');
+      }
+    })();
+  </script>
 </head>
+
 <body>
 
-<!-- ================= TOP BAR ================= -->
-<header class="topbar">
-  <button class="icon-btn" id="btnBack" data-tip="Quay lại danh sách môn">
-    <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
-  </button>
+  <!-- ================= TOP BAR ================= -->
+  <header class="topbar">
+    <button class="icon-btn" id="btnBack" data-tip="Quay lại danh sách môn">
+      <svg viewBox="0 0 24 24">
+        <path d="M15 6l-6 6 6 6" />
+      </svg>
+    </button>
 
-  <a class="brand" href="#" id="brand">
-    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M4 5h7l5 14 5-14h7L20 28h-8z"/>
-    </svg>
-    <span class="brand-text">VLearn</span>
-  </a>
+    <a class="brand" href="#" id="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M4 5h7l5 14 5-14h7L20 28h-8z" />
+      </svg>
+      <span class="brand-text">VLearn</span>
+    </a>
 
-  <span class="vsep"></span>
+    <span class="vsep"></span>
 
-  <div class="doc-id">
-    <span class="doc-icon">
-      <svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h12a2 2 0 012 2v16l-8-4-8 4z"/></svg>
-    </span>
-    <div class="doc-meta">
-      <div class="doc-name" id="docName">material_95eb786b4d9e.pdf</div>
-      <div class="doc-sub" id="docSub">COMP2010 · Lecture_material_ms203vsq_ob7vqp</div>
-    </div>
-  </div>
-
-  <div class="grow"></div>
-
-  <button class="pill-btn" id="btnSetKey" data-tip="Nhập DeepSeek API Key" style="background:#f59e0b;color:#fff;margin-right:8px;font-size:12px;font-weight:bold;padding:4px 8px;border-radius:4px;border:none;cursor:pointer;">API KEY</button>
-  <button class="pill-btn" id="btnLang" data-tip="Đổi ngôn ngữ">VI</button>
-  <button class="icon-btn" id="btnTheme" data-tip="Chế độ tối">
-    <svg class="ic-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8.2 8.2 0 00-.5 2.8A8 8 0 0017.2 15a8.2 8.2 0 002.8-.5z"/></svg>
-    <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
-  </button>
-</header>
-
-<!-- ================= WORKSPACE ================= -->
-<div class="workspace" id="workspace">
-
-  <!-- ---------- SIDEBAR ---------- -->
-  <aside class="sidebar" id="sidebar">
-    <div class="side-head">
-      <span class="side-ic">
-        <svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h5v18H6a2 2 0 01-2-2zM13 3h5a2 2 0 012 2v14a2 2 0 01-2 2h-5z"/></svg>
+    <div class="doc-id">
+      <span class="doc-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 5a2 2 0 012-2h12a2 2 0 012 2v16l-8-4-8 4z" />
+        </svg>
       </span>
-      <div>
-        <div class="side-title" data-i18n="sideTitle">Học liệu môn học</div>
-        <div class="side-sub" data-i18n="sideSub">Chương, slide và tài liệu đã upload</div>
+      <div class="doc-meta">
+        <div class="doc-name" id="docName">material_95eb786b4d9e.pdf</div>
+        <div class="doc-sub" id="docSub">COMP2010 · Lecture_material_ms203vsq_ob7vqp</div>
       </div>
     </div>
-    <div class="chapters" id="chapters"><!-- render bằng JS --></div>
-  </aside>
 
-  <!-- ---------- VIEWER ---------- -->
-  <main class="viewer" id="viewer">
+    <div class="grow"></div>
 
-    <!-- rail toggles -->
-    <button class="rail rail-left" id="tglSidebar" data-tip="Ẩn/hiện học liệu">
-      <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+    <button class="pill-btn" id="btnLang" data-tip="Đổi ngôn ngữ">VI</button>
+    <button class="icon-btn" id="btnTheme" data-tip="Chế độ tối">
+      <svg class="ic-moon" viewBox="0 0 24 24">
+        <path d="M20 14.5A8 8 0 019.5 4a8.2 8.2 0 00-.5 2.8A8 8 0 0017.2 15a8.2 8.2 0 002.8-.5z" />
+      </svg>
+      <svg class="ic-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" />
+      </svg>
     </button>
-    <button class="rail rail-right" id="tglTutor" data-tip="Ẩn/hiện trợ lý">
-      <svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="3"/><circle cx="9" cy="13" r="1.3"/><circle cx="15" cy="13" r="1.3"/><path d="M12 3v4"/></svg>
-    </button>
+  </header>
 
-    <!-- floating toolbar -->
-    <div class="toolbar" id="toolbar">
-      <div class="tgroup">
-        <button class="tool active" data-tool="read">
-          <svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 1.5L10 19z"/></svg><span data-i18n="tRead">Đọc</span>
-        </button>
-        <button class="tool" data-tool="pen">
-          <svg viewBox="0 0 24 24"><path d="M4 20l3-1 11-11-2-2L5 17z"/><path d="M15 5l2-2 2 2-2 2"/></svg><span data-i18n="tPen">Bút</span>
-        </button>
-        <button class="tool" data-tool="hl">
-          <svg viewBox="0 0 24 24"><path d="M4 19h6M6 16l8-9 3 3-8 9H6z"/></svg><span data-i18n="tHl">Highlight</span>
-        </button>
-        <!-- ★ CÔNG CỤ MỚI: kéo chọn vùng để hỏi AI -->
-        <button class="tool tool-snip" data-tool="snip" data-tip="Kéo chọn một vùng trên slide rồi hỏi AI">
-          <svg viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 002 2h14M2 6h14a2 2 0 012 2v14"/></svg><span data-i18n="tSnip">Chụp vùng</span>
-        </button>
-        <button class="tool tool-more" id="btnMore" data-tip="Thêm">
-          <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
-        </button>
-      </div>
+  <!-- ================= WORKSPACE ================= -->
+  <div class="workspace" id="workspace">
 
-      <span class="tsep"></span>
-
-      <button class="chip" id="chipPage" data-tip="Xem danh sách ghi chú">
-        <span id="chipPageText">Trang 1 · 0 note</span>
-      </button>
-
-      <span class="tsep"></span>
-
-      <div class="zoom">
-        <button class="icon-btn sm" id="zoomOut"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
-        <span class="zoom-val" id="zoomVal">100%</span>
-        <button class="icon-btn sm" id="zoomIn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-      </div>
-
-      <span class="tsep"></span>
-
-      <div class="tgroup plain">
-        <button class="icon-btn sm" id="penUp" data-tip="Tăng cỡ bút"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-        <button class="icon-btn sm" id="penDown" data-tip="Giảm cỡ bút"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
-        <button class="icon-btn sm" id="btnDownload" data-tip="Tải bản gốc"><svg viewBox="0 0 24 24"><path d="M12 4v10M8 11l4 4 4-4M5 19h14"/></svg></button>
-        <button class="icon-btn sm" id="btnExport" data-tip="Xuất ghi chú"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M12 10v6M9.5 13.5L12 16l2.5-2.5"/></svg></button>
-        <button class="icon-btn sm" id="btnUndo" data-tip="Hoàn tác" disabled><svg viewBox="0 0 24 24"><path d="M9 7L5 11l4 4"/><path d="M5 11h8a5 5 0 010 10h-2"/></svg></button>
-        <button class="icon-btn sm danger" id="btnClear" data-tip="Xoá annotation trang này" disabled><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/></svg></button>
-      </div>
-    </div>
-
-    <!-- scroll area -->
-    <div class="pages-scroll" id="scroller">
-      <div class="pages" id="pages"><!-- render bằng JS --></div>
-    </div>
-
-    <!-- bottom pager -->
-    <div class="pager">
-      <button class="icon-btn sm" id="prevPage"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-      <span class="pager-text"><span data-i18n="page">Trang</span> <b id="pagerNow">1</b> / <span id="pagerTotal">76</span></span>
-      <button class="icon-btn sm" id="nextPage"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    </div>
-
-    <!-- ★ lớp phủ cho công cụ chụp vùng -->
-    <div class="snip-layer" id="snipLayer" hidden>
-      <div class="snip-hint" id="snipHint" data-i18n="snipHint">Kéo chuột để chọn vùng cần hỏi · Esc để thoát</div>
-      <div class="snip-box" id="snipBox" hidden>
-        <span class="h nw"></span><span class="h n"></span><span class="h ne"></span>
-        <span class="h w"></span><span class="h e"></span>
-        <span class="h sw"></span><span class="h s"></span><span class="h se"></span>
-        <div class="snip-size" id="snipSize">0 × 0</div>
-        <div class="snip-bar" id="snipBar" hidden>
-          <button class="sb primary" id="snipAsk">
-            <svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="3"/><circle cx="9" cy="13" r="1.3"/><circle cx="15" cy="13" r="1.3"/><path d="M12 4v3"/></svg>
-            <span data-i18n="snipAsk">Hỏi AI vùng này</span>
-          </button>
-          <button class="sb" id="snipNote"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg><span data-i18n="note">Ghi chú</span></button>
-          <button class="sb" id="snipCopy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5h10"/></svg><span data-i18n="copy">Sao chép</span></button>
-          <span class="sb-sep"></span>
-          <button class="sb ghost" id="snipCancel"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span data-i18n="cancel">Huỷ</span></button>
+    <!-- ---------- SIDEBAR ---------- -->
+    <aside class="sidebar" id="sidebar">
+      <div class="side-head">
+        <span class="side-ic">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 5a2 2 0 012-2h5v18H6a2 2 0 01-2-2zM13 3h5a2 2 0 012 2v14a2 2 0 01-2 2h-5z" />
+          </svg>
+        </span>
+        <div>
+          <div class="side-title" data-i18n="sideTitle">Học liệu môn học</div>
+          <div class="side-sub" data-i18n="sideSub">Chương, slide và tài liệu đã upload</div>
         </div>
       </div>
-    </div>
-  </main>
+      <div class="chapters" id="chapters"><!-- render bằng JS --></div>
+    </aside>
 
-  <!-- ---------- TUTOR PANEL ---------- -->
-  <aside class="tutor" id="tutor">
-    <div class="tutor-head">
-      <span class="bot-ic">
-        <svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="3"/><circle cx="9" cy="13" r="1.3"/><circle cx="15" cy="13" r="1.3"/><path d="M12 3v4"/></svg>
-      </span>
-      <div class="tutor-title">
-        <div class="tt-main">VLearn Tutor</div>
-        <div class="tt-sub" data-i18n="ttSub">Trợ lý học theo ngữ cảnh</div>
-      </div>
-      <button class="icon-btn sm" id="btnHistory" data-tip="Lịch sử hội thoại"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><path d="M3.5 12a8.5 8.5 0 105-7.8"/><path d="M3 4v4h4"/></svg></button>
-      <button class="icon-btn sm" id="btnNewChat" data-tip="Hội thoại mới"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-      <span class="chip sm" id="ctxChip">Trang slide: <b>1</b></span>
-    </div>
+    <!-- ---------- VIEWER ---------- -->
+    <main class="viewer" id="viewer">
 
-    <div class="chat" id="chat"><!-- render bằng JS --></div>
+      <!-- rail toggles -->
+      <button class="rail rail-left" id="tglSidebar" data-tip="Ẩn/hiện học liệu">
+        <svg viewBox="0 0 24 24">
+          <path d="M15 6l-6 6 6 6" />
+        </svg>
+      </button>
+      <button class="rail rail-right" id="tglTutor" data-tip="Ẩn/hiện trợ lý">
+        <svg viewBox="0 0 24 24">
+          <rect x="4" y="7" width="16" height="12" rx="3" />
+          <circle cx="9" cy="13" r="1.3" />
+          <circle cx="15" cy="13" r="1.3" />
+          <path d="M12 3v4" />
+        </svg>
+      </button>
 
-    <div class="composer">
-      <div class="attach-row" id="attachRow" hidden></div>
-      <div class="composer-box">
-        <input id="ask" type="text" data-i18n-ph="askPh" placeholder="Nhập câu hỏi hoặc bôi đen tài liệu...">
-        <button class="send" id="btnSend" data-tip="Gửi">
-          <svg viewBox="0 0 24 24"><path d="M21 3L10.5 13.5"/><path d="M21 3l-6.8 18-3.7-7.5L3 9.8z"/></svg>
+      <!-- floating toolbar -->
+      <div class="toolbar" id="toolbar">
+        <div class="tgroup">
+          <button class="tool active" data-tool="read">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 3l14 8-6 1.5L10 19z" />
+            </svg><span data-i18n="tRead">Đọc</span>
+          </button>
+          <button class="tool" data-tool="pen">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 20l3-1 11-11-2-2L5 17z" />
+              <path d="M15 5l2-2 2 2-2 2" />
+            </svg><span data-i18n="tPen">Bút</span>
+          </button>
+          <button class="tool" data-tool="hl">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 19h6M6 16l8-9 3 3-8 9H6z" />
+            </svg><span data-i18n="tHl">Highlight</span>
+          </button>
+          <!-- ★ CÔNG CỤ MỚI: kéo chọn vùng để hỏi AI -->
+          <button class="tool tool-snip" data-tool="snip" data-tip="Kéo chọn một vùng trên slide rồi hỏi AI">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 2v14a2 2 0 002 2h14M2 6h14a2 2 0 012 2v14" />
+            </svg><span data-i18n="tSnip">Chụp vùng</span>
+          </button>
+          <button class="tool tool-more" id="btnMore" data-tip="Thêm">
+            <svg viewBox="0 0 24 24">
+              <circle cx="5" cy="12" r="1.6" />
+              <circle cx="12" cy="12" r="1.6" />
+              <circle cx="19" cy="12" r="1.6" />
+            </svg>
+          </button>
+        </div>
+
+        <span class="tsep"></span>
+
+        <button class="chip" id="chipPage" data-tip="Xem danh sách ghi chú">
+          <span id="chipPageText">Trang 1 · 0 note</span>
         </button>
+
+        <span class="tsep"></span>
+
+        <div class="zoom">
+          <button class="icon-btn sm" id="zoomOut"><svg viewBox="0 0 24 24">
+              <path d="M5 12h14" />
+            </svg></button>
+          <span class="zoom-val" id="zoomVal">100%</span>
+          <button class="icon-btn sm" id="zoomIn"><svg viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14" />
+            </svg></button>
+        </div>
+
+        <span class="tsep"></span>
+
+        <div class="tgroup plain">
+          <button class="icon-btn sm" id="penUp" data-tip="Tăng cỡ bút"><svg viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14" />
+            </svg></button>
+          <button class="icon-btn sm" id="penDown" data-tip="Giảm cỡ bút"><svg viewBox="0 0 24 24">
+              <path d="M5 12h14" />
+            </svg></button>
+          <button class="icon-btn sm" id="btnDownload" data-tip="Tải bản gốc"><svg viewBox="0 0 24 24">
+              <path d="M12 4v10M8 11l4 4 4-4M5 19h14" />
+            </svg></button>
+          <button class="icon-btn sm" id="btnExport" data-tip="Xuất ghi chú"><svg viewBox="0 0 24 24">
+              <path d="M6 3h8l4 4v14H6z" />
+              <path d="M12 10v6M9.5 13.5L12 16l2.5-2.5" />
+            </svg></button>
+          <button class="icon-btn sm" id="btnUndo" data-tip="Hoàn tác" disabled><svg viewBox="0 0 24 24">
+              <path d="M9 7L5 11l4 4" />
+              <path d="M5 11h8a5 5 0 010 10h-2" />
+            </svg></button>
+          <button class="icon-btn sm danger" id="btnClear" data-tip="Xoá annotation trang này" disabled><svg
+              viewBox="0 0 24 24">
+              <path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13" />
+            </svg></button>
+        </div>
       </div>
-    </div>
-  </aside>
-</div>
 
+      <!-- scroll area -->
+      <div class="pages-scroll" id="scroller">
+        <div class="pages" id="pages"><!-- render bằng JS --></div>
+      </div>
 
+      <!-- bottom pager -->
+      <div class="pager">
+        <button class="icon-btn sm" id="prevPage"><svg viewBox="0 0 24 24">
+            <path d="M15 6l-6 6 6 6" />
+          </svg></button>
+        <span class="pager-text"><span data-i18n="page">Trang</span> <b id="pagerNow">1</b> / <span
+            id="pagerTotal">76</span></span>
+        <button class="icon-btn sm" id="nextPage"><svg viewBox="0 0 24 24">
+            <path d="M9 6l6 6-6 6" />
+          </svg></button>
+      </div>
 
-<!-- popup khi bôi đen chữ -->
-<div class="sel-popup" id="selPopup" hidden>
-  <button class="sp primary" id="spAsk">
-    <svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="3"/><circle cx="9" cy="13" r="1.3"/><circle cx="15" cy="13" r="1.3"/><path d="M12 4v3"/></svg>
-    <span data-i18n="askAI">Hỏi AI</span>
-  </button>
-  <span class="sp-sep"></span>
-  <button class="sp warn" id="spConfused">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-    <span data-i18n="confused">Báo bối rối</span>
-  </button>
-  <span class="sp-sep"></span>
-  <button class="sp" id="spNote">
-    <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>
-    <span data-i18n="note">Ghi chú</span>
-  </button>
-</div>
+      <!-- ★ lớp phủ cho công cụ chụp vùng -->
+      <div class="snip-layer" id="snipLayer" hidden>
+        <div class="snip-hint" id="snipHint" data-i18n="snipHint">Kéo chuột để chọn vùng cần hỏi · Esc để thoát</div>
+        <div class="snip-box" id="snipBox" hidden>
+          <span class="h nw"></span><span class="h n"></span><span class="h ne"></span>
+          <span class="h w"></span><span class="h e"></span>
+          <span class="h sw"></span><span class="h s"></span><span class="h se"></span>
+          <div class="snip-size" id="snipSize">0 × 0</div>
+          <div class="snip-bar" id="snipBar" hidden>
+            <button class="sb primary" id="snipAsk">
+              <svg viewBox="0 0 24 24">
+                <rect x="4" y="7" width="16" height="12" rx="3" />
+                <circle cx="9" cy="13" r="1.3" />
+                <circle cx="15" cy="13" r="1.3" />
+                <path d="M12 4v3" />
+              </svg>
+              <span data-i18n="snipAsk">Hỏi AI vùng này</span>
+            </button>
+            <button class="sb" id="snipNote"><svg viewBox="0 0 24 24">
+                <path d="M6 3h8l4 4v14H6z" />
+              </svg><span data-i18n="note">Ghi chú</span></button>
+            <button class="sb" id="snipCopy"><svg viewBox="0 0 24 24">
+                <rect x="9" y="9" width="11" height="11" rx="2" />
+                <path d="M5 15V5h10" />
+              </svg><span data-i18n="copy">Sao chép</span></button>
+            <span class="sb-sep"></span>
+            <button class="sb ghost" id="snipCancel"><svg viewBox="0 0 24 24">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg><span data-i18n="cancel">Huỷ</span></button>
+          </div>
+        </div>
+      </div>
+    </main>
 
-<!-- menu "..." -->
-<div class="menu" id="moreMenu" hidden>
-  <button data-act="fit">Vừa khung màn hình</button>
-  <button data-act="fs">Toàn màn hình</button>
-  <button data-act="print">In tài liệu</button>
-  <span class="menu-sep"></span>
-  <button data-act="info">Thông tin tài liệu</button>
-  <button data-act="report">Báo lỗi tài liệu</button>
-  <span class="menu-sep"></span>
-  <button data-act="simfail">Mô phỏng lỗi mạng cho câu hỏi kế tiếp</button>
-</div>
+    <!-- ---------- TUTOR PANEL ---------- -->
+    <aside class="tutor" id="tutor">
+      <div class="tutor-head">
+        <span class="bot-ic">
+          <svg viewBox="0 0 24 24">
+            <rect x="4" y="7" width="16" height="12" rx="3" />
+            <circle cx="9" cy="13" r="1.3" />
+            <circle cx="15" cy="13" r="1.3" />
+            <path d="M12 3v4" />
+          </svg>
+        </span>
+        <div class="tutor-title">
+          <div class="tt-main">VLearn Tutor</div>
+          <div class="tt-sub" data-i18n="ttSub">Trợ lý học theo ngữ cảnh</div>
+        </div>
+        <button class="icon-btn sm" id="btnHistory" data-tip="Lịch sử hội thoại"><svg viewBox="0 0 24 24">
+            <path d="M12 7v5l3 2" />
+            <path d="M3.5 12a8.5 8.5 0 105-7.8" />
+            <path d="M3 4v4h4" />
+          </svg></button>
+        <button class="icon-btn sm" id="btnNewChat" data-tip="Hội thoại mới"><svg viewBox="0 0 24 24">
+            <path d="M12 5v14M5 12h14" />
+          </svg></button>
+        <!-- Badge AI mode + nút đổi key (nhấn K) -->
+        <button class="chip sm" id="aiModeBadge" data-tip="Nhấn để cấu hình API Key (phím K)"
+          onclick="openKeyModal()"
+          style="cursor:pointer;font-size:10px;padding:2px 7px;"></button>
+        <span class="chip sm" id="ctxChip">Trang slide: <b>1</b></span>
+      </div>
 
-<!-- modal dùng chung -->
-<div class="backdrop" id="backdrop" hidden>
-  <div class="modal" id="modal">
-    <div class="modal-head">
-      <h3 id="modalTitle">Tiêu đề</h3>
-      <button class="icon-btn sm" id="modalClose"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    </div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-foot" id="modalFoot"></div>
+      <div class="chat" id="chat"><!-- render bằng JS --></div>
+
+      <div class="composer">
+        <div class="attach-row" id="attachRow" hidden></div>
+        <div class="composer-box">
+          <input id="ask" type="text" data-i18n-ph="askPh" placeholder="Nhập câu hỏi hoặc bôi đen tài liệu...">
+          <button class="send" id="btnSend" data-tip="Gửi">
+            <svg viewBox="0 0 24 24">
+              <path d="M21 3L10.5 13.5" />
+              <path d="M21 3l-6.8 18-3.7-7.5L3 9.8z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
   </div>
-</div>
 
-<div class="toasts" id="toasts"></div>
 
-<script src="data.js"></script>
-<script src="app.js"></script>
+
+  <!-- popup khi bôi đen chữ -->
+  <div class="sel-popup" id="selPopup" hidden>
+    <button class="sp primary" id="spAsk">
+      <svg viewBox="0 0 24 24">
+        <rect x="4" y="7" width="16" height="12" rx="3" />
+        <circle cx="9" cy="13" r="1.3" />
+        <circle cx="15" cy="13" r="1.3" />
+        <path d="M12 4v3" />
+      </svg>
+      <span data-i18n="askAI">Hỏi AI</span>
+    </button>
+    <span class="sp-sep"></span>
+    <button class="sp warn" id="spConfused">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 8v5M12 16h.01" />
+      </svg>
+      <span data-i18n="confused">Báo bối rối</span>
+    </button>
+    <span class="sp-sep"></span>
+    <button class="sp" id="spNote">
+      <svg viewBox="0 0 24 24">
+        <path d="M6 3h8l4 4v14H6z" />
+        <path d="M14 3v4h4" />
+      </svg>
+      <span data-i18n="note">Ghi chú</span>
+    </button>
+  </div>
+
+  <!-- menu "..." -->
+  <div class="menu" id="moreMenu" hidden>
+    <button data-act="fit">Vừa khung màn hình</button>
+    <button data-act="fs">Toàn màn hình</button>
+    <button data-act="print">In tài liệu</button>
+    <span class="menu-sep"></span>
+    <button data-act="info">Thông tin tài liệu</button>
+    <button data-act="report">Báo lỗi tài liệu</button>
+    <span class="menu-sep"></span>
+    <button data-act="simfail">Mô phỏng lỗi mạng cho câu hỏi kế tiếp</button>
+  </div>
+
+  <!-- modal dùng chung -->
+  <div class="backdrop" id="backdrop" hidden>
+    <div class="modal" id="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">Tiêu đề</h3>
+        <button class="icon-btn sm" id="modalClose"><svg viewBox="0 0 24 24">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg></button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot" id="modalFoot"></div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
 </body>
+
 </html>
