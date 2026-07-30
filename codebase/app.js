@@ -551,16 +551,344 @@ $('#spNote').onclick = () => {
    TUTOR CHAT
    ============================================================= */
 /* ---- AI_CALL: điểm duy nhất sẽ nối model thật ở CP3 ---- */
-function mockAnswer(q, opts = {}) {
-  const s = q.toLowerCase();
-  if (opts.region) return withPage(ANSWERS.region, opts.page);
-  if (/deadline|hạn nộp|nộp bài|điểm số|bao nhiêu điểm|link nộp/.test(s)) return ANSWERS.outofscope;
-  if (s.replace(/[^a-zà-ỹ0-9]/gi, '').length < 12) return ANSWERS.clarify;
-  if (/yếu tố|framework|6\+3|actor|boundary|trang 67/.test(s)) return ANSWERS.framework;
-  if (/rule|workflow|agent|cấp độ/.test(s)) return ANSWERS.levels;
-  if (/problem statement|lát cắt|một câu|viết bài toán/.test(s)) return ANSWERS.statement;
-  if (/lịch sử|nguồn gốc|ai phát minh|năm nào|tác giả gốc/.test(s)) return ANSWERS.lowconf;
-  return withPage(ANSWERS.generic, opts.page || S.page);
+async function mockAnswer(q, opts = {}) {
+  const apiKey = localStorage.getItem('deepseek_api_key');
+  if (!apiKey) {
+    const s = q.toLowerCase();
+    if (opts.region) return withPage(ANSWERS.region, opts.page);
+    if (/deadline|hạn nộp|nộp bài|điểm số|bao nhiêu điểm|link nộp/.test(s)) return ANSWERS.outofscope;
+    if (s.replace(/[^a-zà-ỹ0-9]/gi, '').length < 12) return ANSWERS.clarify;
+    if (/yếu tố|framework|6\+3|actor|boundary|trang 67/.test(s)) return ANSWERS.framework;
+    if (/rule|workflow|agent|cấp độ/.test(s)) return ANSWERS.levels;
+    if (/problem statement|lát cắt|một câu|viết bài toán/.test(s)) return ANSWERS.statement;
+    if (/lịch sử|nguồn gốc|ai phát minh|năm nào|tác giả gốc/.test(s)) return ANSWERS.lowconf;
+    return withPage(ANSWERS.generic, opts.page || S.page);
+  }
+
+  // AI REAL CALL WITH DEEPSEEK TOOL USE / FUNCTION CALLING
+  const SYSTEM_INSTRUCTION = `
+Bạn là Agent Trợ Giúp Học Tập thông minh của khóa học AI Product.
+Nhiệm vụ chính: Hỗ trợ học viên tóm tắt bài giảng hoặc giải thích hình ảnh trên slide, đảm bảo câu trả lời hoàn toàn chính xác dựa trên slide và transcript.
+
+LUỒNG HOẠT ĐỘNG BẮT BUỘC (EXECUTION FLOW):
+1. Gọi \`classify_intent\` đầu tiên để xác định ý định của học viên.
+2. Nếu ý định là "clarify" (mơ hồ hoặc thiếu vùng chọn/ảnh crop cần thiết), hãy dừng lại và hỏi lại học viên một cách cụ thể để làm rõ.
+3. Nếu ý định là "summary":
+   - Gọi \`get_knowledge_units\` để lấy các đơn vị kiến thức thuộc phạm vi bài học.
+   - Gọi \`retrieve_lesson_evidence\` để tra cứu slide và transcript liên quan.
+4. Nếu ý định là "explain_image":
+   - Gọi \`analyze_selected_region\` để phân tích hình ảnh và tọa độ crop.
+   - Gọi \`retrieve_lesson_evidence\` để lấy thêm ngữ cảnh transcript bài học.
+5. Sau khi có đủ minh chứng (evidence), hãy viết ra các tuyên bố (claims) chính.
+6. Gọi \`verify_claims\` để kiểm tra chéo các tuyên bố với nguồn tài liệu thu thập được. Nếu có claim nào không được hỗ trợ (supported = False), hãy sửa lại hoặc loại bỏ tuyên bố đó để tránh bịa đặt.
+7. Gọi \`record_trace\` để ghi lại lịch sử thực thi của Agent.
+8. Trả về kết quả cuối cùng cho học viên dưới dạng đối tượng JSON (Bắt buộc trả về chuỗi JSON thô, không nằm trong code block markdown):
+{
+  "conf": 95, 
+  "body": ["Đoạn giải thích 1...", "Đoạn giải thích 2..."],
+  "sources": [{"page": 12, "text": "Trích dẫn dòng text thực tế trong bài giảng..."}],
+  "kind": "answered" 
+}
+*(Nếu từ chối, đặt kind = "refuse", nếu cần làm rõ đặt kind = "clarify")*
+`;
+
+  const tools = [
+    {
+      type: "function",
+      function: {
+        name: "classify_intent",
+        description: "Phân loại ý định từ prompt của học viên: tóm tắt bài giảng (summary), giải thích hình ảnh/vùng khoanh (explain_image), hoặc câu hỏi mơ hồ thiếu context (clarify).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            prompt: { type: "STRING" },
+            context: { type: "OBJECT" }
+          },
+          required: ["prompt", "context"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "get_knowledge_units",
+        description: "Lấy danh sách các đơn vị kiến thức của bài học theo phạm vi chỉ định.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            lesson_id: { type: "STRING" },
+            scope: { type: "STRING" }
+          },
+          required: ["lesson_id", "scope"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "analyze_selected_region",
+        description: "Phân tích hình ảnh slide đầy đủ cùng với vùng crop (tọa độ bbox) để xác định thành phần được hỏi.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            full_image: { type: "STRING" },
+            crop_image: { type: "STRING" },
+            bbox: { type: "ARRAY", items: { type: "NUMBER" } },
+            prompt: { type: "STRING" }
+          },
+          required: ["full_image", "crop_image", "bbox", "prompt"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "retrieve_lesson_evidence",
+        description: "Tìm kiếm slide text, OCR hình ảnh và transcript liên quan đến bài học và câu hỏi truy vấn.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            lesson_id: { type: "STRING" },
+            query: { type: "STRING" },
+            image_id: { type: "STRING" }
+          },
+          required: ["lesson_id", "query"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "verify_claims",
+        description: "Kiểm tra từng tuyên bố trong bài viết có được các nguồn hỗ trợ hay không để tránh bịa đặt.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            claims: { type: "ARRAY", items: { type: "STRING" } },
+            sources: { type: "ARRAY", items: { type: "OBJECT" } }
+          },
+          required: ["claims", "sources"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
+        name: "record_trace",
+        description: "Lưu lại trace vết thực thi của Agent (ý định, lệnh gọi tool, nguồn và kết quả) để debug và đánh giá.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            intent: { type: "STRING" },
+            tool_calls: { type: "ARRAY", items: { type: "OBJECT" } },
+            sources: { type: "ARRAY", items: { type: "OBJECT" } },
+            result: { type: "STRING" }
+          },
+          required: ["intent", "tool_calls", "sources", "result"]
+        }
+      }
+    }
+  ];
+
+  try {
+    const url = "https://api.deepseek.com/chat/completions";
+    const pageNum = opts.page || S.page;
+    let promptText = `Trang slide học viên đang xem: ${pageNum}\n`;
+    if (opts.region) {
+      promptText += `[Học viên đã khoanh vùng chọn trên slide kích thước ${opts.w}x${opts.h}]\n`;
+    }
+    promptText += `Câu hỏi của học viên: ${q}`;
+
+    const contextData = {
+      lesson_id: "Day02",
+      has_crop: opts.region ? true : false,
+      image_payload: opts.region ? { page: pageNum, w: opts.w, h: opts.h } : null,
+      current_slide: pageNum
+    };
+
+    // Khởi tạo messages lịch sử cuộc gọi
+    let messages = [
+      { role: "system", content: SYSTEM_INSTRUCTION },
+      { role: "user", content: promptText }
+    ];
+
+    // Lần gọi 1
+    let response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages,
+        tools,
+        temperature: 0.1
+      })
+    });
+
+    if (!response.ok) throw new Error("Lỗi kết nối API: " + response.statusText);
+    let resData = await response.json();
+    let message = resData.choices[0].message;
+
+    // Vòng lặp xử lý tool calls (tối đa 6 lượt gọi)
+    let loopCount = 0;
+    let executedToolCalls = [];
+    let collectedSources = [];
+    let detectedIntent = "unknown";
+
+    while (message.tool_calls && loopCount < 6) {
+      loopCount++;
+      const toolCalls = message.tool_calls;
+      messages.push(message);
+
+      for (const toolCall of toolCalls) {
+        const funcName = toolCall.function.name;
+        const args = JSON.parse(toolCall.function.arguments);
+        const toolCallId = toolCall.id;
+
+        console.log(`[Tool Call] Model yêu cầu gọi hàm: ${funcName} với tham số:`, args);
+        executedToolCalls.push({ step: loopCount, tool: funcName, args });
+
+        let functionResponse = {};
+        if (funcName === "classify_intent") {
+          const p = args.prompt || q;
+          const ctx = args.context || contextData;
+
+          const p_lower = p.toLowerCase();
+          const has_crop = ctx.has_crop || ctx.image_payload !== null;
+          if ((p_lower.includes("hình này") || p_lower.includes("bảng này") || p_lower.includes("sơ đồ này") || p_lower.includes("phần khoanh")) && !has_crop) {
+            functionResponse = { intent: "clarify", reason: "Học viên hỏi về hình ảnh/vùng chọn nhưng chưa quét/crop ảnh." };
+          } else if (p_lower.includes("tóm tắt") || p_lower.includes("tóm gọn") || p_lower.includes("khái quát") || p_lower.includes("tổng hợp") || p_lower.includes("đầu mục")) {
+            functionResponse = { intent: "summary", reason: "Yêu cầu tóm tắt toàn bài hoặc một phần bài học." };
+          } else if (has_crop || p_lower.includes("sơ đồ") || p_lower.includes("hình vẽ") || p_lower.includes("biểu đồ") || p_lower.includes("code")) {
+            functionResponse = { intent: "explain_image", reason: "Yêu cầu giải thích hình ảnh hoặc một vùng trên slide." };
+          } else {
+            functionResponse = { intent: "summary", reason: "Mặc định xử lý theo dạng truy vấn nội dung bài giảng." };
+          }
+          detectedIntent = functionResponse.intent;
+        }
+        else if (funcName === "get_knowledge_units") {
+          const lid = args.lesson_id || "Day02";
+          const sc = args.scope || "all";
+          functionResponse = {
+            lesson_id: lid,
+            scope: sc,
+            units: [
+              { id: "KU-01", name: "LLM & Foundation Models", slide_range: "1-15" },
+              { id: "KU-02", name: "Rule vs Workflow vs Agent", slide_range: "16-30" },
+              { id: "KU-03", name: "Context Management & Memory Injection", slide_range: "31-45" },
+              { id: "KU-04", name: "Problem Statement Template (6+3)", slide_range: "46-76" }
+            ]
+          };
+        }
+        else if (funcName === "analyze_selected_region") {
+          const fi = args.full_image || "slide_full.png";
+          const ci = args.crop_image || "slide_crop.png";
+          const bb = args.bbox || [0, 0, 100, 100];
+          const pr = args.prompt || q;
+
+          let desc = "Vùng chọn chứa một phần sơ đồ hoặc code đang được khoanh đỏ trên slide.";
+          if (bb) {
+            desc += ` Tọa độ bbox: ${JSON.stringify(bb)}.`;
+          }
+          functionResponse = {
+            description: desc,
+            detected_elements: ["sơ đồ kiến trúc", "đoạn code ví dụ"],
+            annotation: "Cần đối chiếu với transcript bài giảng để giải thích chính xác."
+          };
+        }
+        else if (funcName === "retrieve_lesson_evidence") {
+          const lid = args.lesson_id || "Day02";
+          const q_arg = args.query || q;
+          const query_lower = q_arg.toLowerCase();
+
+          const slide_results = PAGES.filter(p => {
+            const text = JSON.stringify(p).toLowerCase();
+            return text.includes(query_lower);
+          }).slice(0, 3).map(p => ({
+            type: "slide",
+            source: "Day 02 Slide",
+            page: p.n,
+            text: p.title + ": " + (p.items || p.cols || p.stats || p.bullets || p.quote || p.lines || "")
+          }));
+          functionResponse = { query: q_arg, evidences: slide_results };
+          collectedSources.push(...slide_results);
+        }
+        else if (funcName === "verify_claims") {
+          const cls = args.claims || [];
+          const srcs = args.sources || collectedSources;
+
+          const verification = cls.map(claim => {
+            let supported = false;
+            let matched_source = "N/A";
+            for (const src of srcs) {
+              const src_text = src.text || src.content || "";
+              const matches = claim.toLowerCase().split(/\s+/).filter(word => word.length > 4 && src_text.toLowerCase().includes(word)).length;
+              if (matches >= 2) {
+                supported = true;
+                matched_source = src.page ? `trang ${src.page}` : (src.section || "N/A");
+                break;
+              }
+            }
+            return { claim, supported, matched_source };
+          });
+          functionResponse = { verification, all_valid: verification.every(v => v.supported) };
+        }
+        else if (funcName === "record_trace") {
+          const it = args.intent || detectedIntent;
+          const tcs = args.tool_calls || executedToolCalls;
+          const scs = args.sources || collectedSources;
+          const res = args.result || "";
+
+          console.log("[Agent Trace Recorded]", { intent: it, tool_calls: tcs, sources: scs, result: res });
+          functionResponse = { status: "success", trace_recorded: true };
+        }
+
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCallId,
+          name: funcName,
+          content: JSON.stringify(functionResponse)
+        });
+      }
+
+      // Gọi lại DeepSeek
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages,
+          tools,
+          temperature: 0.1
+        })
+      });
+
+      if (!response.ok) throw new Error("Lỗi kết nối API ở bước gọi tool: " + response.statusText);
+      resData = await response.json();
+      message = resData.choices[0].message;
+    }
+
+    if (!message.content) throw new Error("Không thể tạo văn bản phản hồi.");
+    const responseText = message.content;
+    const parsed = JSON.parse(responseText.trim());
+    return withPage(parsed, pageNum);
+  } catch (err) {
+    console.error("DeepSeek Tool Calling Agent Error:", err);
+    return withPage({
+      conf: 50,
+      body: [
+        "Không thể kết nối đến DeepSeek API. Vui lòng kiểm tra lại API Key hoặc mạng của bạn.",
+        "Lưu ý: Nếu chạy trực tiếp bằng file:/// (không qua server), trình duyệt có thể chặn cuộc gọi do chính sách CORS bảo mật của DeepSeek.",
+        "Chi tiết lỗi: " + err.message
+      ],
+      sources: []
+    }, opts.page || S.page);
+  }
 }
 function withPage(a, p) {
   return {
@@ -570,7 +898,7 @@ function withPage(a, p) {
   };
 }
 
-function send(text, opts = {}) {
+async function send(text, opts = {}) {
   if (S.busy || !text.trim()) return;
   const page = opts.page || S.page;
   S.chat.push({ role: 'user', text, ctxPage: page, snap: S.snap });
@@ -583,17 +911,21 @@ function send(text, opts = {}) {
   S.chat.push({ role: 'typing' });
   renderChat();
 
-  setTimeout(() => {
-    S.chat.pop();
-    if (failing) {
-      S.chat.push({ role: 'ai', error: true, retry: { text, opts } });
-    } else {
-      const a = mockAnswer(text, { ...opts, page });
-      S.chat.push({ role: 'ai', data: a, ctxPage: page });
-    }
+  await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
+
+  try {
+    S.chat.pop(); // remove typing
+    if (failing) throw new Error("simulated network error");
+
+    // Call mockAnswer (supports async API calls)
+    const a = await mockAnswer(text, { ...opts, page });
+    S.chat.push({ role: 'ai', data: a, ctxPage: page });
+  } catch (err) {
+    S.chat.push({ role: 'ai', error: true, retry: { text, opts } });
+  } finally {
     S.busy = false;
     renderChat();
-  }, 900 + Math.random() * 500);
+  }
 }
 
 function confLabel(c) {
@@ -827,9 +1159,7 @@ $('#btnClear').onclick = () => {
   };
 };
 
-$('#chipPage').onclick = () => openNotesModal();
-$('#prevPage').onclick = () => goPage(S.page - 1);
-$('#nextPage').onclick = () => goPage(S.page + 1);
+
 
 $('#tglSidebar').onclick = () => $('#workspace').classList.toggle('side-off');
 $('#tglTutor').onclick = () => openTutor(false);

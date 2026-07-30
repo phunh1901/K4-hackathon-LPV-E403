@@ -1,0 +1,209 @@
+[
+  {
+    "id": "GS-01",
+    "input_type": "summary",
+    "user_query": "Tóm gọn những nội dung quan trọng nhất trong slide Day 01.",
+    "context_slide_id": "Day 01 - Foundation",
+    "image_payload": null,
+    "category": "normal",
+    "ground_truth": "Tóm tắt các ý chính về AI & LLM Foundation bao gồm: phân cấp hệ sinh thái (AI > ML > DL > GenAI > LLM), cơ chế đoán token tiếp theo của Transformer, và sự thay đổi kỳ vọng người dùng. Có dẫn chứng [trang 6, trang 28]."
+  },
+  {
+    "id": "GS-02",
+    "input_type": "summary",
+    "user_query": "Tóm tắt nhanh slide bài giảng Day 02.",
+    "context_slide_id": "Day 02 - Problem Definition",
+    "image_payload": null,
+    "category": "normal",
+    "ground_truth": "Tóm tắt các ý chính về xác định bài toán kinh doanh cho AI: biến yêu cầu mơ hồ thành cụ thể, văn hóa làm product (user-centered), mức độ tự động hóa (Augment/Conditional/Automate) dựa trên cost-of-error. Dẫn chứng [trang 9, trang 17]."
+  },
+  {
+    "id": "GS-03",
+    "input_type": "point-and-explain",
+    "user_query": "Giải thích phần code được bôi đỏ này.",
+    "context_slide_id": "Slide 15",
+    "image_payload": {
+      "crop_coords": "[100, 200, 300, 500]",
+      "contains_text": "def calculate_attention(Q, K, V):"
+    },
+    "category": "normal",
+    "ground_truth": "Giải thích chi tiết hàm tính toán Self-Attention trong Transformer, giải nghĩa các tham số Q (Query), K (Key), V (Value) và các bước nhân ma trận. Dẫn chứng [T06-042]."
+  },
+  {
+    "id": "GS-04",
+    "input_type": "point-and-explain",
+    "user_query": "Sơ đồ 3 khối này hoạt động như thế nào?",
+    "context_slide_id": "Slide 12",
+    "image_payload": {
+      "crop_coords": "[150, 150, 400, 600]",
+      "contains_text": "Reasoning, Action, Memory"
+    },
+    "category": "normal",
+    "ground_truth": "Giải thích mô hình tương tác của AI Agent gồm: Reasoning (suy luận của LLM), Action (gọi công cụ/API) và Memory (lưu trữ ngữ cảnh). Dẫn chứng [trang 17, T01-159]."
+  },
+  {
+    "id": "GS-05",
+    "input_type": "summary",
+    "user_query": "Tổng hợp các kỹ thuật quản lý ngữ cảnh (Context Management) trong bài.",
+    "context_slide_id": "Day 02 - Slides",
+    "image_payload": null,
+    "category": "normal",
+    "ground_truth": "Tóm tắt các kỹ thuật: Memory Injection (chỉ chọn facts cần thiết), Compression (Summarize, Drop, Archive) để tối ưu hóa context window. Dẫn chứng [trang 22, trang 31]."
+  },
+  {
+    "id": "GS-06",
+    "input_type": "point-and-explain",
+    "user_query": "Bảng so sánh MoE này ý nghĩa là gì?",
+    "context_slide_id": "Slide 37",
+    "image_payload": {
+      "crop_coords": "[50, 50, 200, 400]",
+      "contains_text": "GPT-3 (175B) vs Kimi K3 (2.8T)"
+    },
+    "category": "normal",
+    "ground_truth": "Giải thích mô hình MoE (Mixture of Experts) giúp tăng quy mô tham số lên 2.800 tỷ nhưng vẫn tiết kiệm chi phí tính toán nhờ chỉ kích hoạt các nhóm chuyên gia phù hợp. Dẫn chứng [trang 37, T14-213]."
+  },
+  {
+    "id": "GS-07",
+    "input_type": "point-and-explain",
+    "user_query": "Giải thích dòng chú thích nhỏ ở cuối biểu đồ này.",
+    "context_slide_id": "Slide 45",
+    "image_payload": {
+      "crop_coords": "[450, 100, 480, 500]",
+      "contains_text": "Note: spurious cues (shortcut learning) detected in spam classification"
+    },
+    "category": "normal",
+    "ground_truth": "Giải thích hiện tượng Spurious Cues (đặc trưng bề nổi) khi mô hình phân loại spam chỉ dựa vào việc đếm số hyperlink thay vì hiểu nội dung, dẫn đến nhận diện nhầm. Dẫn chứng [trang 45, T18-262]."
+  },
+  {
+    "id": "GS-08",
+    "input_type": "summary",
+    "user_query": "Cho tôi biết các đầu mục chính của buổi học Day 01.",
+    "context_slide_id": "Day 01 - Outline",
+    "image_payload": null,
+    "category": "normal",
+    "ground_truth": "Danh sách các đầu mục chính: Lịch sử LLM, Cơ chế hoạt động của Transformer, Tokenization, Dự đoán phân bố xác suất và vòng lặp sinh văn bản. Dẫn chứng [trang 1, trang 28]."
+  },
+  {
+    "id": "GS-09",
+    "input_type": "point-and-explain",
+    "user_query": "Trang 24 đang chia làm bốn nhánh màu khác nhau thì đó là nhánh gì?",
+    "context_slide_id": "Slide 24",
+    "image_payload": {
+      "crop_coords": "[200, 100, 500, 600]",
+      "contains_text": "Blue: Data, Green: Model, Red: Prompt, Orange: Eval"
+    },
+    "category": "hard_domain_specificity",
+    "ground_truth": "Giải thích 4 nhánh màu tương ứng với 4 trụ cột trong phát triển sản phẩm AI: Nhánh Xanh Dương (Data), Xanh Lá (Model), Đỏ (Prompt), và Cam (Evaluation/Đo lường). Dẫn chứng [T08-819]."
+  },
+  {
+    "id": "GS-10",
+    "input_type": "point-and-explain",
+    "user_query": "Sơ đồ kiến trúc Self-Attention này hoạt động thế nào?",
+    "context_slide_id": "Slide 28",
+    "image_payload": {
+      "crop_coords": "[100, 100, 400, 400]",
+      "contains_text": "Scaled Dot-Product Attention"
+    },
+    "category": "hard_domain_specificity",
+    "ground_truth": "Giải thích chi tiết cơ chế Scaled Dot-Product Attention gồm các bước MatMul, Scale, Mask (nếu có), Softmax và MatMul lần 2 với ma trận V. Dẫn chứng [T06-130]."
+  },
+  {
+    "id": "GS-11",
+    "input_type": "summary",
+    "user_query": "Tóm tắt slide 80 của Day 01.",
+    "context_slide_id": "Day 01",
+    "image_payload": null,
+    "category": "hard_source_of_truth",
+    "ground_truth": "Từ chối trả lời và báo lỗi vì tài liệu slide Day 01 chỉ có tối đa 60 trang, không tồn tại slide 80."
+  },
+  {
+    "id": "GS-12",
+    "input_type": "summary",
+    "user_query": "Hãy tóm tắt phần nội dung về kỹ thuật Fine-tuning trong bài giảng Day 02.",
+    "context_slide_id": "Day 02",
+    "image_payload": null,
+    "category": "hard_source_of_truth",
+    "ground_truth": "Báo cáo rằng slide và transcript Day 02 không chứa nội dung chi tiết về kỹ thuật Fine-tuning (chỉ thảo luận về prompt engineering và thiết kế bài toán) và đề xuất người dùng xem tài liệu các buổi sau."
+  },
+  {
+    "id": "GS-13",
+    "input_type": "point-and-explain",
+    "user_query": "Giải thích phần đang khoanh tròn.",
+    "context_slide_id": "Slide 10",
+    "image_payload": null,
+    "category": "hard_ambiguity",
+    "ground_truth": "Hệ thống từ chối trả lời và chủ động hỏi lại học viên bôi đen hoặc khoanh một vùng cụ thể trên slide bằng công cụ crop để hệ thống có thể nhìn thấy hình ảnh."
+  },
+  {
+    "id": "GS-14",
+    "input_type": "point-and-explain",
+    "user_query": "Giải thích sơ đồ này.",
+    "context_slide_id": "Slide 15",
+    "image_payload": {
+      "crop_coords": "[10, 10, 50, 50]",
+      "contains_text": ""
+    },
+    "category": "hard_ambiguity",
+    "ground_truth": "Hệ thống nhận diện vùng crop trống (không chứa chữ hoặc hình chi tiết) và phản hồi: 'Vùng chọn của bạn trống hoặc quá nhỏ. Vui lòng quét rộng hơn bao gồm cả tiêu đề sơ đồ để tôi giải thích chính xác.'"
+  },
+  {
+    "id": "GS-15",
+    "input_type": "summary",
+    "user_query": "Viết hộ tôi code trò chơi Flappy Bird bằng pygame Python.",
+    "context_slide_id": "Day 01",
+    "image_payload": null,
+    "category": "hard_out_of_scope",
+    "ground_truth": "Từ chối thực hiện vì yêu cầu nằm ngoài phạm vi khóa học AI Product. Gợi ý học viên hỏi các câu hỏi liên quan đến nội dung bài giảng AI & LLM Foundation."
+  },
+  {
+    "id": "GS-16",
+    "input_type": "summary",
+    "user_query": "Link nộp bài tập Day 2 chiều nay ở đâu và mấy giờ hết hạn?",
+    "context_slide_id": "Day 02",
+    "image_payload": null,
+    "category": "hard_out_of_scope",
+    "ground_truth": "Phản hồi rằng thông tin bài tập và link nộp bài thuộc về hệ thống quản trị lớp học (LMS/Discord) chứ không có trong slide bài giảng. Hướng dẫn học viên kiểm tra kênh thông báo chính thức trên Discord."
+  },
+  {
+    "id": "GS-17",
+    "input_type": "point-and-explain",
+    "user_query": "Giải thích biểu đồ phân bố xác suất này cho học sinh cấp 1 hiểu.",
+    "context_slide_id": "Slide 28",
+    "image_payload": {
+      "crop_coords": "[100, 100, 300, 300]",
+      "contains_text": "Probability Distribution: land 22%, forest 9%"
+    },
+    "category": "rare",
+    "ground_truth": "Giải thích cơ chế đoán từ của AI giống như trò chơi điền chữ vào chỗ trống dựa trên tỷ lệ đoán mò của tập thể, lược bỏ thuật ngữ toán học phức tạp và giữ giọng điệu thân thiện. Dẫn chứng [trang 28]."
+  },
+  {
+    "id": "GS-18",
+    "input_type": "summary",
+    "user_query": "Tóm tắt slide này bằng đúng 3 dòng gạch đầu dòng ngắn gọn.",
+    "context_slide_id": "Slide 22 - Memory Injection",
+    "image_payload": null,
+    "category": "rare",
+    "ground_truth": "Trả về đúng 3 dòng gạch đầu dòng ngắn gọn tóm tắt Memory Injection và Compression, không viết tràn lan. Dẫn chứng [trang 22]."
+  },
+  {
+    "id": "GS-19",
+    "input_type": "point-and-explain",
+    "user_query": "Giải thích phần bôi đỏ 'overkill' nghĩa là gì.",
+    "context_slide_id": "Slide 9",
+    "image_payload": {
+      "crop_coords": "[100, 100, 150, 400]",
+      "contains_text": "agent thường là overkill"
+    },
+    "category": "normal",
+    "ground_truth": "Giải thích khái niệm 'overkill' trong việc dùng AI Agent: không cần thiết phải thiết kế Agent phức tạp nếu bài toán không cần dữ liệu mới, suy luận đa bước hay quyết định động. Dẫn chứng [trang 9, T12-148]."
+  },
+  {
+    "id": "GS-20",
+    "input_type": "summary",
+    "user_query": "Tóm tắt tri thức ẩn của chuyên gia trong bài giảng Day 02 sáng.",
+    "context_slide_id": "Day 02 - Morning",
+    "image_payload": null,
+    "category": "rare",
+    "ground_truth": "Tóm tắt tri thức ẩn: Khả năng biến yêu cầu mơ hồ thành đề bài cụ thể, tư duy phản biện khi nhận đề bài, văn hóa dogfooding và sự khác biệt giữa product manager vs project manager. Dẫn chứng [T01-005, T01-042]."
+  }
+]
