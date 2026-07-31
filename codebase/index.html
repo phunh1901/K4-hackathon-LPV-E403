@@ -7,7 +7,7 @@
   <title>VLearn · Học liệu môn học</title>
   <!-- ?v= là cache-buster: đổi chuỗi này mỗi lần sửa CSS/JS thì trình duyệt buộc phải
        tải lại. Bump cả 3 dòng (styles.css, data.js, app.js) cho đồng bộ. -->
-  <link rel="stylesheet" href="styles.css?v=20260731a">
+  <link rel="stylesheet" href="styles.css?v=20260731f">
 </head>
 
 <body>
@@ -194,6 +194,15 @@
         <div class="pages" id="pages"><!-- render bằng JS --></div>
       </div>
 
+      <!-- ★ che mờ slide khi đang thử thách: ép nhớ lại thay vì đọc đáp án trên màn -->
+      <div class="quiz-veil" id="quizVeil" hidden>
+        <div class="qv-box">
+          <div class="qv-title">Đang thử thách</div>
+          <div class="qv-sub">Thử nhớ lại trước đã — còn <b id="quizVeilLeft">0</b> câu chưa trả lời.</div>
+          <button class="qchip" id="quizPeek">Cứ cho tôi xem slide</button>
+        </div>
+      </div>
+
       <!-- bottom pager -->
       <div class="pager">
         <button class="icon-btn sm" id="prevPage"><svg viewBox="0 0 24 24">
@@ -360,8 +369,8 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
-  <script src="data.js?v=20260731a"></script>
-  <script src="app.js?v=20260731a"></script>
+  <script src="data.js?v=20260731f"></script>
+  <script src="app.js?v=20260731f"></script>
 </body>
 
 </html>
