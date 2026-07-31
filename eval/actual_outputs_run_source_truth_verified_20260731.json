@@ -1,0 +1,52 @@
+[
+  {
+    "id": "GS-10",
+    "category": "hard_source_of_truth",
+    "source_ref": "synthetic unsupported-topic case",
+    "question": "Trình bày chi tiết quy trình fine-tuning được dạy trong Day 02.",
+    "answer": {
+      "conf": 95,
+      "kind": "clarify",
+      "body": [
+        "Tài liệu đang mở không cung cấp nội dung được hỏi, nên mình chưa thể trả lời có căn cứ. Bạn có thể chỉ sang tài liệu/trang có nội dung đó hoặc hỏi một chủ đề xuất hiện trong file này."
+      ],
+      "sources": [],
+      "analysis": {
+        "intent": "question",
+        "scope": "uncertain"
+      },
+      "context": {
+        "page": 1,
+        "reference_kind": "deck_search",
+        "document": "d2-slide-hackathon.pdf",
+        "history_messages_used": 0
+      },
+      "grounding": {
+        "claims_with_citation": 0,
+        "claims_total": 1,
+        "sources_verified": 0,
+        "sources_total": 0,
+        "conf_reported_by_model": 95
+      },
+      "trace": {
+        "request_id": "106fc1cc-80c7-4490-8043-8caa7ef54f86",
+        "model": "deepseek-v4-flash",
+        "decided_by": "ai"
+      }
+    },
+    "error": null,
+    "decided_by": "ai",
+    "sources_verified": 0,
+    "sources_total": 0,
+    "grade": {
+      "passed": true,
+      "kind_ok": true,
+      "missing_terms": [],
+      "missing_exact_terms": [],
+      "leaked_terms": [],
+      "citation_ok": true,
+      "format_ok": true,
+      "note": "Điểm máy là pre-score; case answered vẫn cần người thứ hai kiểm tra đúng nghĩa/citation."
+    }
+  }
+]

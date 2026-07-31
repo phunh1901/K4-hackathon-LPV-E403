@@ -7,7 +7,7 @@
   <title>VLearn · Học liệu môn học</title>
   <!-- ?v= là cache-buster: đổi chuỗi này mỗi lần sửa CSS/JS thì trình duyệt buộc phải
        tải lại. Bump cả 3 dòng (styles.css, data.js, app.js) cho đồng bộ. -->
-  <link rel="stylesheet" href="styles.css?v=20260731a">
+  <link rel="stylesheet" href="styles.css?v=20260731b">
 </head>
 
 <body>
@@ -260,9 +260,8 @@
             <path d="M3.5 12a8.5 8.5 0 105-7.8" />
             <path d="M3 4v4h4" />
           </svg></button>
-        <button class="icon-btn sm" id="btnNewChat" data-tip="Hội thoại mới"><svg viewBox="0 0 24 24">
-            <path d="M12 5v14M5 12h14" />
-          </svg></button>
+        <button class="chip sm reset-chat" id="btnNewChat" data-i18n="resetChat"
+          data-tip="Đặt lại hội thoại">Đặt lại</button>
         <button class="chip sm" id="aiModeBadge" data-tip="Trạng thái kết nối AI"
           style="cursor:pointer;font-size:10px;padding:2px 7px;"></button>
         <span class="chip sm" id="ctxChip">Trang slide: <b>1</b></span>
@@ -360,8 +359,8 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
-  <script src="data.js?v=20260731a"></script>
-  <script src="app.js?v=20260731a"></script>
+  <script src="data.js?v=20260731b"></script>
+  <script src="app.js?v=20260731b"></script>
 </body>
 
 </html>

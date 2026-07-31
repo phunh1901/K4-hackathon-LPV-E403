@@ -21,6 +21,8 @@ const S = {
   snap: null,         // vùng ảnh đang đính kèm
   simFail: false,     // mô phỏng lỗi mạng cho câu kế tiếp
   busy: false,
+  abortController: null,
+  chatEpoch: 0,
   selQuote: '',
   selPos: null,
 };
@@ -42,6 +44,7 @@ const I18N = {
     ctx: 'Ngữ cảnh', srcOne: 'nguồn tham khảo',
     helpful: 'Phản hồi này có hữu ích không?',
     close: 'Đóng', save: 'Lưu', retry: 'Thử lại',
+    send: 'Gửi', stop: 'Dừng', resetChat: 'Đặt lại',
   },
   en: {
     sideTitle: 'Course materials', sideSub: 'Chapters, slides and uploaded files',
@@ -58,6 +61,7 @@ const I18N = {
     ctx: 'Context', srcOne: 'source(s)',
     helpful: 'Was this helpful?',
     close: 'Close', save: 'Save', retry: 'Retry',
+    send: 'Send', stop: 'Stop', resetChat: 'Reset',
   },
 };
 const t = k => I18N[S.lang][k];
@@ -73,6 +77,7 @@ function applyLang() {
   });
   renderChapters();
   syncChrome();
+  syncSendButton();
   renderChat();
 }
 
@@ -926,8 +931,30 @@ function withPage(a, p) {
 // Production path: browser talks only to the same-origin backend.
 const MOCK_MODE = new URLSearchParams(location.search).get('mock') === '1';
 
-async function callBackendAgent(question, opts = {}) {
-  const response = await fetch('/api/agent', {
+function conversationHistory() {
+  return S.chat
+    .filter(m => m.role === 'user' || (m.role === 'ai' && !m.error && m.data))
+    .map(m => {
+      if (m.role === 'user') {
+        return {
+          role: 'user',
+          content: m.text,
+          document: m.document || DOC.file,
+          page: m.ctxPage,
+        };
+      }
+      return {
+        role: 'assistant',
+        content: (m.data.body || []).join('\n'),
+        document: (m.data.context && m.data.context.document) || m.document || DOC.file,
+        page: (m.data.context && m.data.context.page) || m.ctxPage,
+        intent: m.data.analysis && m.data.analysis.intent,
+      };
+    });
+}
+
+async function callBackendAgent(question, opts = {}, onEvent = () => {}) {
+  const response = await fetch('/api/agent/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -938,11 +965,75 @@ async function callBackendAgent(question, opts = {}) {
       slide_text: opts.slideText || '',
       image_data_url: opts.imageDataUrl || null,
       region: opts.region ? { x: opts.x, y: opts.y, w: opts.w, h: opts.h } : null,
+      history: opts.history || [],
     }),
+    signal: opts.signal,
   });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || `Backend trả lỗi ${response.status}`);
-  return data;
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Backend trả lỗi ${response.status}`);
+  }
+  if (!response.body) throw new Error('Trình duyệt không hỗ trợ streaming response.');
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result = null;
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const event = JSON.parse(line);
+      onEvent(event);
+      if (event.event === 'error') throw new Error(event.error || 'Agent stream gặp lỗi.');
+      if (event.event === 'result') result = event.data;
+    }
+    if (done) break;
+  }
+  if (buffer.trim()) {
+    const event = JSON.parse(buffer);
+    onEvent(event);
+    if (event.event === 'error') throw new Error(event.error || 'Agent stream gặp lỗi.');
+    if (event.event === 'result') result = event.data;
+  }
+  if (!result) throw new Error('Agent stream kết thúc trước khi có kết quả.');
+  return result;
+}
+
+function syncSendButton() {
+  const button = $('#btnSend');
+  if (!button) return;
+  button.classList.toggle('is-stop', S.busy);
+  const label = S.busy ? t('stop') : t('send');
+  button.dataset.tip = label;
+  button.setAttribute('aria-label', label);
+  button.innerHTML = S.busy
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3L10.5 13.5"/><path d="M21 3l-6.8 18-3.7-7.5L3 9.8z"/></svg>';
+}
+
+function removeChatMessage(message) {
+  const index = S.chat.indexOf(message);
+  if (index >= 0) S.chat.splice(index, 1);
+}
+
+function abortableDelay(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener('abort', () => {
+      clearTimeout(timer);
+      reject(new DOMException('Stopped', 'AbortError'));
+    }, { once: true });
+  });
+}
+
+function stopAnswering() {
+  if (S.abortController && !S.abortController.signal.aborted) {
+    S.abortController.abort();
+  }
 }
 
 // UNUSED LEGACY DIRECT-API IMPLEMENTATION.
@@ -951,15 +1042,21 @@ async function callBackendAgent(question, opts = {}) {
 
 async function send(text, opts = {}) {
   if (S.busy || !text.trim()) return;
+  const epoch = S.chatEpoch;
+  const controller = new AbortController();
   const page = opts.page || S.page;
-  S.chat.push({ role: 'user', text, ctxPage: page, snap: S.snap });
+  const history = conversationHistory();
+  S.chat.push({ role: 'user', text, ctxPage: page, document: DOC.file, snap: S.snap });
   S.snap = null; renderAttach();
   renderChat();
 
   const failing = S.simFail;
   S.simFail = false;
   S.busy = true;
-  S.chat.push({ role: 'typing' });
+  S.abortController = controller;
+  syncSendButton();
+  const typingMessage = { role: 'typing', streamRaw: '' };
+  S.chat.push(typingMessage);
   renderChat();
 
   // Dùng setTimeout để render typing bubble trước khi thực thi async
@@ -970,29 +1067,92 @@ async function send(text, opts = {}) {
 
     let a;
     if (MOCK_MODE) {
-      await new Promise(r => setTimeout(r, 900 + Math.random() * 500));
+      await abortableDelay(900 + Math.random() * 500, controller.signal);
       a = mockAnswer(text, { ...opts, page });
     } else {
-      a = await callBackendAgent(text, { ...opts, page });
+      let renderQueued = false;
+      a = await callBackendAgent(text, { ...opts, page, history, signal: controller.signal }, event => {
+        if (event.event !== 'delta') return;
+        typingMessage.streamRaw += event.delta || '';
+        if (renderQueued) return;
+        renderQueued = true;
+        requestAnimationFrame(() => {
+          renderQueued = false;
+          if (S.chat.includes(typingMessage)) renderChat();
+        });
+      });
     }
 
-    // Xóa typing bubble và hiển thị kết quả
-    S.chat.pop();
-    S.chat.push({ role: 'ai', data: a, ctxPage: page });
+    if (epoch !== S.chatEpoch || controller.signal.aborted) return;
+    removeChatMessage(typingMessage);
+    S.chat.push({
+      role: 'ai',
+      data: a,
+      document: DOC.file,
+      ctxPage: (a.context && a.context.page) || page,
+    });
   } catch (err) {
-    console.error('Agent error:', err);
-    // Xóa typing bubble và hiển lỗi thực sự (không chỉ "mô phỏng")
-    S.chat.pop();
-    S.chat.push({ role: 'ai', error: true, errMsg: err.message, retry: { text, opts } });
+    if (epoch === S.chatEpoch) {
+      removeChatMessage(typingMessage);
+      if (err.name === 'AbortError') {
+        toast('warn', S.lang === 'vi' ? 'Đã dừng trả lời' : 'Answer stopped');
+      } else {
+        console.error('Agent error:', err);
+        S.chat.push({ role: 'ai', error: true, errMsg: err.message, retry: { text, opts } });
+      }
+    }
   } finally {
-    S.busy = false;
-    renderChat();
+    if (S.abortController === controller) {
+      S.abortController = null;
+      S.busy = false;
+      syncSendButton();
+    }
+    if (epoch === S.chatEpoch) renderChat();
   }
 }
 
 function confLabel(c) {
   const L = t('trust');
   return c >= 75 ? L[0] : c >= 50 ? L[1] : L[2];
+}
+
+function streamBodyPreview(raw) {
+  const marker = /"body"\s*:\s*\[/.exec(raw || '');
+  if (!marker) return [];
+  const text = raw.slice(marker.index + marker[0].length);
+  const items = [];
+  let inString = false, escaped = false, chunk = '';
+  for (const char of text) {
+    if (!inString) {
+      if (char === ']') break;
+      if (char === '"') {
+        inString = true;
+        chunk = '';
+      }
+      continue;
+    }
+    if (escaped) {
+      chunk += '\\' + char;
+      escaped = false;
+    } else if (char === '\\') {
+      escaped = true;
+    } else if (char === '"') {
+      try { items.push(JSON.parse(`"${chunk}"`)); } catch (_) { /* wait for final JSON */ }
+      inString = false;
+    } else {
+      chunk += char;
+    }
+  }
+  if (inString && chunk) {
+    const safe = chunk
+      .replace(/\\u[0-9a-fA-F]{0,3}$/, '')
+      .replace(/\\$/, '')
+      .replace(/\\n/g, '\n')
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\');
+    if (safe.trim()) items.push(safe);
+  }
+  return items;
 }
 
 function renderChat() {
@@ -1003,9 +1163,13 @@ function renderChat() {
       return `<div style="align-self:flex-end;max-width:88%">${att}<div class="msg-user">${esc(m.text)}</div></div>`;
     }
     if (m.role === 'typing') {
+      const preview = streamBodyPreview(m.streamRaw);
+      const streamed = preview.length
+        ? `<div class="stream-preview">${preview.map(item => `<p>${esc(item)}</p>`).join('')}</div>`
+        : '';
       return `<div class="msg-ai">
         <div class="ai-meta"><span class="state warn">${t('asking')}</span></div>
-        <div class="bubble"><div class="typing"><i></i><i></i><i></i></div></div></div>`;
+        <div class="bubble">${streamed}<div class="typing"><i></i><i></i><i></i></div></div></div>`;
     }
     if (m.error) {
       const isCors = (m.errMsg || '').toLowerCase().includes('failed to fetch') || (m.errMsg || '').toLowerCase().includes('network');
@@ -1021,12 +1185,15 @@ function renderChat() {
     }
     const a = m.data;
     const isClarify = a.kind === 'clarify', isRefuse = a.kind === 'refuse', low = a.conf > 0 && a.conf < 60;
+    const summaryRead = a.summary && a.summary.estimated_reading_minutes
+      ? ` · ~${a.summary.estimated_reading_minutes} phút đọc`
+      : '';
     const meta = isClarify || isRefuse
       ? `<div class="ai-meta"><span class="state warn">${isRefuse ? 'NGOÀI PHẠM VI' : 'CẦN LÀM RÕ'}</span></div>`
       : `<div class="ai-meta">
           <div class="conf${low ? ' low' : ''}"><div class="conf-bar"><i style="width:${a.conf}%"></i></div>
           <span class="conf-txt">${a.conf}% · ${confLabel(a.conf)}</span></div>
-          <span class="state${low ? ' warn' : ''}">${low ? t('lowconf') : t('answered')}</span>
+          <span class="state${low ? ' warn' : ''}">${low ? t('lowconf') : t('answered')}${summaryRead}</span>
         </div>`;
 
     // Nguồn nào đối chiếu được với text thật của trang thì hiện bình thường;
@@ -1068,7 +1235,7 @@ function renderChat() {
 }
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const linkCites = s => s.replace(/\[trang (\d+)\]/g, (_, n) => `<span class="cite" data-goto="${n}">[trang ${n}]</span>`);
+const linkCites = s => esc(s).replace(/\[trang (\d+)\]/g, (_, n) => `<span class="cite" data-goto="${n}">[trang ${n}]</span>`);
 
 function wireChat() {
   $$('#chat [data-goto]').forEach(el => el.onclick = () => {
@@ -1309,7 +1476,12 @@ $('#btnBack').onclick = () => toast('warn', 'Quay lại danh sách môn — màn
 $('#brand').onclick = e => { e.preventDefault(); goPage(1); };
 
 $('#btnNewChat').onclick = () => {
+  S.chatEpoch += 1;
+  stopAnswering();
+  S.abortController = null;
+  S.busy = false;
   S.chat = []; S.snap = null; renderAttach(); renderChat();
+  syncSendButton();
   toast('ok', 'Đã mở hội thoại mới');
 };
 $('#btnHistory').onclick = () => openModal('Lịch sử hội thoại',
@@ -1318,13 +1490,17 @@ $('#btnHistory').onclick = () => openModal('Lịch sử hội thoại',
    <div class="note-row"><span class="pg">2 ngày trước</span><div class="bd"><b>Day 01 · trang 40</b><div class="qt">“cho ví dụ về cost of error”</div></div></div>`);
 
 $('#btnSend').onclick = () => {
+  if (S.busy) return stopAnswering();
   const i = $('#ask');
   if (!i.value.trim()) return toast('warn', 'Nhập câu hỏi trước đã');
   send(i.value.trim(), { page: S.page });
   i.value = '';
 };
 $('#ask').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnSend').click(); });
-$('#btnSummary').onclick = () => send('Tóm tắt toàn bộ tài liệu này thành 5 gạch đầu dòng, ưu tiên các ý cần nhớ để ôn tập.', { page: S.page });
+$('#btnSummary').onclick = () => send(
+  'Tóm tắt toàn bộ tài liệu này để ôn tập trong khoảng 2 phút, tối đa 5 gạch đầu dòng.',
+  { page: S.page },
+);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {

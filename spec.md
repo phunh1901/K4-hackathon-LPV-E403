@@ -42,11 +42,12 @@ Loại: [ ] Tối ưu tính năng có sẵn  [x] Tính năng mới
   3. Không dịch slide sang các ngôn ngữ khác ngoài Tiếng Việt và Tiếng Anh của khóa học.
 - **Mức prototype hiện tại:** [x] Functional prototype — PDF, bôi đen, crop, backend, AI text và vision đều chạy thật. Vision dùng OpenRouter `google/gemma-4-31b-it`; mock chỉ bật có chủ đích bằng `?mock=1`.
 - **Cấu trúc Agent đã triển khai:**
-  1. `classify(payload)`: Xác định summary, selection, image, clarify hoặc refuse.
-  2. `document_pages(...)` + `gather_evidence(...)`: Đọc đúng PDF thật và chọn evidence theo trang/query.
-  3. `_call_model(...)`: Gọi text model hoặc vision model tại quyết định trung tâm.
-  4. `_normalize_answer(...)`: Chỉ giữ citation tới trang thật; quote không khớp được thay bằng excerpt PDF thật.
-  5. `_trace(...)`: Ghi intent, nguồn, model, request ID, latency và token usage vào JSONL.
+  1. `classify(payload)` + `summary_preferences(...)`: Xác định summary/question và kiểm tra mục đích + ngân sách thời gian đọc trước khi tóm tắt.
+  2. `resolve_reference(...)`: Hiểu trang hiện tại, `slide 3`, đoạn bôi đen, vùng ảnh và tham chiếu từ lịch sử hội thoại.
+  3. `document_pages(...)` + `gather_evidence(...)`: Đọc toàn bộ PDF thật cho cả summary và Q&A; chỉ PDF có số trang mới được dùng làm nguồn citation.
+  4. `_build_messages(...)` + `_call_model(...)`: Gửi cửa sổ hội thoại có giới hạn, gọi text/VLM và stream token thật qua backend.
+  5. `_normalize_answer(...)`: Loại page citation không hợp lệ, đối chiếu source excerpt và chặn output tự nhận thiếu evidence nhưng vẫn gắn nhãn `answered`.
+  6. `_trace(...)`: Ghi intent, reference đã resolve, số lượt history, model, request ID, latency và token usage vào JSONL.
 - **Automation:** [x] conditional — AI tự trả lời khi chắc chắn nguồn và phạm vi; chủ động hỏi lại hoặc từ chối khi crop mờ, thiếu tiêu đề hoặc ngoài phạm vi khóa học để tránh hallucination (cost-of-error cao).
 
 ---
@@ -56,7 +57,7 @@ Loại: [ ] Tối ưu tính năng có sẵn  [x] Tính năng mới
 - **① Nguồn sự thật:** Học viên hỏi slide/chủ đề không tồn tại $\rightarrow$ AI từ chối suy đoán, báo lỗi hệ thống.
 - **② Mơ hồ/Thiếu thông tin:** Học viên hỏi "sơ đồ này" nhưng crop ảnh trống hoặc không chọn vùng $\rightarrow$ AI yêu cầu bôi đen/crop lại vùng chọn rõ ràng hơn.
 - **③ Ngoài phạm vi:** Học viên hỏi viết code ngoài khóa học hoặc hỏi deadlines $\rightarrow$ AI từ chối lịch sự, hướng dẫn xem Discord chính thức.
-- **④ Đặc thù domain:** Học viên hỏi về các sơ đồ kỹ thuật của khóa học $\rightarrow$ AI giải thích chính xác theo thuật ngữ chuyên ngành bài học và trích dẫn mã đoạn `[Txx-NNN]`.
+- **④ Đặc thù domain:** Học viên hỏi về các sơ đồ kỹ thuật của khóa học $\rightarrow$ AI giải thích chính xác theo thuật ngữ chuyên ngành bài học và trích dẫn trang PDF `[trang N]`.
 
 ---
 
@@ -70,14 +71,14 @@ Loại: [ ] Tối ưu tính năng có sẵn  [x] Tính năng mới
 
 ## §7. Kiểm thử
 - **Chiều chất lượng + định nghĩa kiểm chứng được:**
-  1. *Accuracy & Citation:* Đạt khi câu trả lời đúng kiến thức bài học và bắt buộc có trích dẫn `[trang N]` hoặc `[Txx-NNN]`.
+  1. *Accuracy & Citation:* Đạt khi câu trả lời đúng kiến thức bài học và mọi ý kiến thức bắt buộc có trích dẫn `[trang N]`.
   2. *Scope & Fallback:* Đạt khi AI nhận diện được câu hỏi ngoài lề/mơ hồ và từ chối/hỏi lại theo đúng kịch bản, không đoán bừa.
   3. *Conciseness & Format:* Đạt khi định dạng tóm tắt dưới 5 gạch đầu dòng, ngôn ngữ dễ hiểu.
 - **Golden set:** **24 case** gồm 8 thường, 12 case khó và 4 hiếm; toàn bộ ghi rõ nguồn/adaptation. Bốn fixture ảnh là pixel render từ PDF thật. File: `eval/golden_set.json`.
   * GS-21..24 bổ sung sau khi đo được rằng bộ phân loại cũ chỉ bắt đúng câu đã chuẩn bị: ba câu logistics diễn đạt khác (0/4 nhận diện đúng trước khi sửa) và một câu prompt injection để nghiệm thu guardrail mới.
 - **Ai ra quyết định — khai báo rõ để không thổi phồng năng lực AI:**
-  * **Rule (có chủ đích):** nhóm logistics (deadline, link nộp, lịch/giờ thi, điểm số) và trang không tồn tại. Chọn rule vì cost-of-error ở nhóm này cao nhất — trả lời sai deadline gây hậu quả trực tiếp cho học viên, không để model ứng biến.
-  * **AI:** mọi trường hợp còn lại, gồm cả *ngoài phạm vi không thuộc logistics* (nhờ viết code hộ, hỏi chuyện ngoài môn). Trước đây nhóm này do regex quyết định và regex đã bị overfit vào chính golden set (chứa `flappy|pygame` khớp đúng một case).
+  * **Rule (có chủ đích):** chỉ xử lý đầu vào tất định — trang không tồn tại, ảnh thiếu/quá nhỏ, hoặc lệnh tóm tắt hoàn toàn chưa rõ mục đích/độ dài.
+  * **AI:** quyết định scope cho mọi câu hỏi còn lại, gồm logistics, nhờ làm việc ngoài môn và chủ đề thuộc khóa học nhưng không có trong PDF. Không dùng regex từ khóa để làm đẹp golden set.
   * Bảng kết quả tách hai cột nên đọc được riêng điểm của model.
 - **Quality Bar (Chốt trước 23:59 N1):** **Đạt khi >= 85% số cases trong Golden Set qua bộ lọc kiểm thử thành công.**
 - **Kết quả các lượt chạy (Bảng cập nhật):**
@@ -88,6 +89,7 @@ Loại: [ ] Tối ưu tính năng có sẵn  [x] Tính năng mới
   * *Lượt chạy 13 (sau khi sửa citation, chuyển refuse ngoài-logistics sang AI, thêm BM25 + transcript, 24 case):* **21/24 = 88% tổng · AI-only 15/18 = 83%** $\rightarrow$ **AI-only chưa đạt bar 85%**. Citation đối chiếu được với text thật của trang: **39/40 = 98%** (trước là 58%). Fail: GS-07, GS-18 (thiếu khái niệm bắt buộc), GS-14 (trả `clarify` thay vì `refuse`).
   * *Lượt chạy 14 (hạ `temperature` 0.1 → 0 vì Run 13 cho thấy cùng một câu lúc `refuse` lúc `clarify`; đổi vì tính tái lập, không phải để tăng điểm):* **20/24 = 83% · AI-only 14/18 = 78%** $\rightarrow$ **kém hơn Run 13, ghi nhận nguyên trạng, không quay lại 0.1 để lấy số đẹp**. Xuất hiện thêm một case `error` do model dựng bảng markdown làm vỡ JSON.
   * *Lượt chạy 15 (sau khi sửa lỗi vỡ JSON — cấm dấu ngoặc kép trong chuỗi + 2 lần tự sửa):* **23/24 = 96% tổng · AI-only 17/18 = 94%** $\rightarrow$ **cả hai đều đạt bar 85%**. Citation đối chiếu được **44/52 = 85%**. Case fail duy nhất là **GS-14**: model trả **đúng** `refuse`, nhưng trượt `required_terms: ["ngoài phạm vi"]` — từ khoá này viết theo đúng chuỗi cứng của rule cũ, không phải tiêu chí chất lượng. **Cố ý giữ FAIL**; sửa golden set sau khi đã nhìn output là nới rubric, việc này để người review quyết định.
+  * *Run agent-flow verified (2026-07-31, full PDF context + history + streaming):* **22/24 = 92% tổng · AI-only 19/21 = 90%**, 0 API/JSON error, citation excerpt đối chiếu được **48/53 = 91%**. Sau run, invariant nguồn-sự-thật được siết để output tự nhận topic không có trong file luôn chuyển sang `clarify`; case GS-10 chạy lại **1/1 pass** tại `eval/evaluation_run_source_truth_verified_20260731.md`. Không sửa golden set.
   * Kết quả CP3 cuối vẫn cần hai người chấm độc lập.
 
 ---

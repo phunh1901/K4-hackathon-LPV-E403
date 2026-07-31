@@ -43,6 +43,18 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
+    def _stream_headers(self) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-store, no-transform")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+
+    def _stream_event(self, event: str, **payload: Any) -> None:
+        raw = json.dumps({"event": event, **payload}, ensure_ascii=False).encode("utf-8") + b"\n"
+        self.wfile.write(raw)
+        self.wfile.flush()
+
     def do_GET(self) -> None:  # noqa: N802
         if self.path == "/api/health":
             self._json(200, health())
@@ -50,22 +62,46 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/api/agent":
+        if self.path not in {"/api/agent", "/api/agent/stream"}:
             self._json(404, {"error": "Not found"})
             return
+        stream_started = False
         try:
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0 or length > 8_000_000:
                 raise AgentError("Payload trống hoặc quá lớn.")
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
-            self._json(200, run_agent(payload))
+            if self.path == "/api/agent/stream":
+                self._stream_headers()
+                stream_started = True
+                self._stream_event("start")
+                answer = run_agent(
+                    payload,
+                    on_delta=lambda delta: self._stream_event("delta", delta=delta),
+                )
+                self._stream_event("result", data=answer)
+            else:
+                self._json(200, run_agent(payload))
         except AgentError as exc:
-            self._json(422, {"error": str(exc)})
+            if stream_started:
+                # Headers were already flushed; preserve stream framing.
+                self._stream_event("error", error=str(exc))
+            else:
+                self._json(422, {"error": str(exc)})
         except (json.JSONDecodeError, UnicodeDecodeError):
             self._json(400, {"error": "JSON không hợp lệ."})
+        except (BrokenPipeError, ConnectionResetError):
+            # The learner navigated away or cancelled while the model streamed.
+            return
         except Exception as exc:  # pragma: no cover - last-resort local demo guard
             self.log_error("agent failure: %s", exc)
-            self._json(500, {"error": "Agent gặp lỗi nội bộ. Xem terminal server để biết chi tiết."})
+            if stream_started:
+                self._stream_event(
+                    "error",
+                    error="Agent gặp lỗi nội bộ. Xem terminal server để biết chi tiết.",
+                )
+            else:
+                self._json(500, {"error": "Agent gặp lỗi nội bộ. Xem terminal server để biết chi tiết."})
 
 
 def main() -> None:
