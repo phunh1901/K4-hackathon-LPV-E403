@@ -13,6 +13,9 @@ const S = {
   penSize: 3,
   penColor: '#e0483b',
   moreOpen: false,    // "..." trên toolbar có đang mở thanh phụ không
+  pad: {},            // page -> chữ học viên tự gõ trên giấy cạnh slide
+  review: {},         // page -> [{id,question,why,chose,answer,excerpt,origin}] câu còn sai
+  qzSeq: 0,           // đánh số mỗi lượt quiz để id ghi chú không đụng nhau
   sideManual: false,  // người dùng đã tự bấm ẩn/hiện sidebar chưa (xem fitPanels)
   tutorManual: false, // như trên, cho panel trợ lý
   notes: [],          // {id,page,kind,quote,text,x,y}
@@ -195,12 +198,20 @@ function renderPages() {
     section.id = 'pg' + i;
     section.dataset.page = i;
     section.innerHTML = `
-      <div class="page-head"><span>${t('page')} ${i} / ${DOC.totalPages}</span><span class="r">${DOC.file}</span></div>
-      <div class="slide pdf-loading">
-        <canvas class="pdf-canvas"></canvas>
-        <div class="hl-layer"></div>
-        <div class="pdf-text-layer"></div>
-        <svg class="ink" viewBox="0 0 1000 562" preserveAspectRatio="none"></svg>
+      <div class="page-head"><span>${t('page')} ${i} / ${DOC.totalPages}</span>
+        <span class="ph-right"><span class="r">${DOC.file}</span>
+          <button class="pg-quiz" data-quizpage="${i}" data-tip="Tạo câu hỏi kiểm tra cho riêng trang này">
+            <svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11l-1 8.5L19 10h-6.5z"/></svg>
+            <span>Thử thách</span>
+          </button></span></div>
+      <div class="page-body">
+        <div class="slide pdf-loading">
+          <canvas class="pdf-canvas"></canvas>
+          <div class="hl-layer"></div>
+          <div class="pdf-text-layer"></div>
+          <svg class="ink" viewBox="0 0 1000 562" preserveAspectRatio="none"></svg>
+        </div>
+        <aside class="notepad" data-pad="${i}"></aside>
       </div>`;
     container.appendChild(section);
   }
@@ -1123,6 +1134,262 @@ function confLabel(c) {
   return c >= 75 ? L[0] : c >= 50 ? L[1] : L[2];
 }
 
+/* =============================================================
+   THỬ THÁCH TRANG NÀY (quiz)
+   ============================================================= */
+
+async function requestQuiz(forPage) {
+  if (S.busy) return;
+  const page = forPage || S.page;
+  // Nút nằm trên đầu trang nên panel trợ lý có thể đang đóng — mở ra để học viên
+  // thấy được thẻ quiz vừa sinh, nếu không thì bấm xong tưởng như không có gì xảy ra.
+  openTutor(true);
+  S.chat.push({ role: 'user', text: `⚡ Thử thách trang ${page}`, ctxPage: page });
+  S.busy = true;
+  S.chat.push({ role: 'typing' });
+  renderChat();
+  await new Promise(r => setTimeout(r, 50));
+  try {
+    const res = await fetch('/api/agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ document: DOC.file, page, mode: 'quiz', question: '' }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Backend trả lỗi ${res.status}`);
+    S.chat.pop();
+    // picked giữ lựa chọn của học viên để render lại không mất; flagged giữ câu đã báo sai đề.
+    S.chat.push({ role: 'ai', data, ctxPage: page, picked: {}, flagged: {}, qzId: ++S.qzSeq });
+  } catch (err) {
+    S.chat.pop();
+    S.chat.push({ role: 'ai', error: true, errMsg: err.message, retry: { quiz: true } });
+  } finally {
+    S.busy = false;
+    renderChat();
+  }
+}
+
+function quizCard(a, m, i) {
+  const qs = a.questions || [];
+  if (!qs.length) {
+    return `<div class="msg-ai">
+      <div class="ai-meta"><span class="state warn">CHƯA RA ĐƯỢC ĐỀ</span></div>
+      <div class="bubble"><p>${esc(a.note || 'Trang này chưa đủ nội dung để ra đề.')}</p></div></div>`;
+  }
+  const picked = m.picked || (m.picked = {});
+  const answered = qs.filter((q, k) => picked[k] !== undefined).length;
+  const right = qs.filter((q, k) => picked[k] === q.correct).length;
+  const nDrop = (a.dropped || []).length;
+
+  const blocks = qs.map((q, k) => {
+    const p = picked[k];
+    const done = p !== undefined;
+    const opts = q.options.map((o, j) => {
+      let cls = '';
+      if (done) {
+        if (j === q.correct) cls = ' right';
+        else if (j === p) cls = ' wrong';
+        else cls = ' dim';
+      }
+      return `<button class="qz-opt${cls}" ${done ? 'disabled' : ''} data-qpick="${i}:${k}:${j}">
+        <span class="qz-ltr">${String.fromCharCode(65 + j)}</span><span>${esc(o)}</span></button>`;
+    }).join('');
+
+    let fb = '';
+    if (done) {
+      const ok = p === q.correct;
+      // why_wrong xếp theo 3 phương án SAI, đã bỏ qua phương án đúng.
+      const why = ok ? '' : (q.why_wrong || [])[p > q.correct ? p - 1 : p] || '';
+      const fromSlide = q.origin === 'slide';
+      fb = `<div class="qz-fb ${ok ? 'ok' : 'no'}">
+        <div class="qz-verdict">${ok ? '✓ Chính xác' : '✗ Chưa đúng'}${why ? ' — ' + esc(why) : ''}</div>
+        <div class="qz-src${fromSlide ? ' clickable' : ''}" ${fromSlide ? `data-qgoto="${q.page}" data-qquote="${esc(q.excerpt)}"` : ''}>
+          <span class="qz-src-tag">${fromSlide ? `slide · trang ${q.page}` : 'lời giảng của thầy'}</span>
+          <span class="qz-src-q">${esc(q.excerpt)}</span>
+          ${fromSlide ? '<span class="qz-src-go">xem trên slide →</span>' : ''}
+        </div></div>`;
+    }
+    const flagged = (m.flagged || {})[k];
+    return `<div class="qz-q">
+      <div class="qz-head"><b>Câu ${k + 1}</b>
+        <button class="qz-flag${flagged ? ' on' : ''}" data-qflag="${i}:${k}">${flagged ? 'đã báo' : 'câu này sai đề'}</button>
+      </div>
+      <div class="qz-text">${esc(q.q)}</div>
+      <div class="qz-opts">${opts}</div>${fb}</div>`;
+  }).join('');
+
+  return `<div class="msg-ai">
+    <div class="ai-meta">
+      <span class="state">THỬ THÁCH · TRANG ${a.page}</span>
+      <span class="qz-score">${right}/${qs.length} đúng</span>
+    </div>
+    <div class="bubble qz">
+      <div class="qz-bar"><i style="width:${Math.round(100 * answered / qs.length)}%"></i></div>
+      <div class="qz-note">Ra được ${qs.length} câu${nDrop ? ` · ${nDrop} câu bị loại vì không đối chiếu được với học liệu` : ''}</div>
+      ${blocks}
+    </div></div>`;
+}
+
+/* Dựng Range cho một đoạn chữ bất kỳ trong text layer của pdf.js.
+   Text layer là hàng trăm <span> rời nhau nên phải ghép phẳng lại kèm bảng ánh xạ
+   ngược về (node, offset) thì mới đặt được Range. Khoảng trắng bị gộp về 1 dấu cách
+   vì chữ do pypdf lấy ở backend và chữ pdf.js dựng ở frontend chỉ khác nhau chỗ đó. */
+function rangeForText(pageEl, needle) {
+  const layer = pageEl && pageEl.querySelector('.pdf-text-layer');
+  if (!layer || !needle) return null;
+  let flat = '';
+  const map = [];
+  const push = (ch, node, off) => {
+    if (/\s/.test(ch)) {
+      if (flat.endsWith(' ')) return;
+      ch = ' ';
+    }
+    flat += ch; map.push({ node, off });
+  };
+  for (const span of layer.querySelectorAll('span')) {
+    const tn = span.firstChild;
+    if (!tn || tn.nodeType !== 3) continue;
+    for (let k = 0; k < tn.nodeValue.length; k++) push(tn.nodeValue[k], tn, k);
+    push(' ', tn, tn.nodeValue.length);
+  }
+  const hay = flat.toLowerCase();
+  const norm = needle.replace(/\s+/g, ' ').trim().toLowerCase();
+  let at = hay.indexOf(norm), len = norm.length;
+  if (at < 0) {
+    // Không khớp trọn thì bám 8 từ đầu — đủ để chỉ đúng chỗ cho học viên nhìn.
+    const head = norm.split(' ').slice(0, 8).join(' ');
+    at = hay.indexOf(head); len = head.length;
+  }
+  if (at < 0 || !map[at] || !map[at + len - 1]) return null;
+  const range = document.createRange();
+  range.setStart(map[at].node, map[at].off);
+  range.setEnd(map[at + len - 1].node, map[at + len - 1].off + 1);
+  return range;
+}
+
+/* Che mờ slide khi còn câu chưa trả lời — thấy slide thì bài thử thách thành bài
+   đọc hiểu. Có nút xin xem để học viên tự quyết, không khoá cứng. */
+function updateQuizFocus() {
+  const veil = $('#quizVeil');
+  if (!veil) return;
+  let active = null;
+  for (let k = S.chat.length - 1; k >= 0; k--) {
+    const m = S.chat[k];
+    if (m.role === 'ai' && m.data && m.data.kind === 'quiz' && (m.data.questions || []).length) {
+      active = m; break;
+    }
+  }
+  const left = active
+    ? active.data.questions.filter((q, k) => (active.picked || {})[k] === undefined).length
+    : 0;
+  const on = !!active && left > 0 && !active.peeked;
+  veil.hidden = !on;
+  if (on) $('#quizVeilLeft').textContent = left;
+  S.quizVeilFor = on ? active : null;
+}
+
+/* Vẽ vệt tô sáng cho một đoạn chữ trên trang. Trả về mảng phần tử đã vẽ (rỗng nếu
+   không định vị được). reviewId dùng để sau này gỡ đúng vệt của một ghi chú. */
+function paintQuote(page, quote, cls, reviewId) {
+  const pageEl = $('#pg' + page);
+  const slide = pageEl && pageEl.querySelector('.slide');
+  const layer = slide && slide.querySelector('.hl-layer');
+  const range = rangeForText(pageEl, quote);
+  if (!range || !layer) return [];
+  const sr = slide.getBoundingClientRect();
+  return [...range.getClientRects()]
+    .filter(r => r.width > 1 && r.height > 1)
+    .map(r => {
+      const el = document.createElement('div');
+      el.className = 'hl-mark ' + cls;
+      if (reviewId) el.dataset.review = reviewId;
+      el.style.left = ((r.left - sr.left) / sr.width * 100) + '%';
+      el.style.top = ((r.top - sr.top) / sr.height * 100) + '%';
+      el.style.width = (r.width / sr.width * 100) + '%';
+      el.style.height = (r.height / sr.height * 100) + '%';
+      layer.appendChild(el);
+      return el;
+    });
+}
+
+function flashQuoteOnPage(page, quote) {
+  goPage(page);
+  setTimeout(() => {
+    const marks = paintQuote(page, quote, 'flash');
+    if (!marks.length) return toast('warn', 'Không định vị được câu này trên trang');
+    setTimeout(() => marks.forEach(el => el.remove()), 4200);
+  }, 620);
+}
+
+/* ---- Ôn lỗi sai sau khi làm xong cả bộ ----
+   Cố ý KHÔNG hiện ngay lúc chọn sai: thấy đáp án giữa chừng thì mấy câu sau không
+   còn là kiểm tra nữa. Chỉ khi trả lời hết mới gom các câu sai ra giấy bên cạnh. */
+function showQuizReview(msg) {
+  const qs = msg.data.questions || [];
+  const wrong = qs.map((q, k) => ({ q, k })).filter(({ q, k }) => msg.picked[k] !== q.correct);
+  if (!wrong.length) return toast('ok', `Đúng cả ${qs.length} câu — không có gì phải ôn lại`);
+
+  const pages = new Set();
+  wrong.forEach(({ q, k }) => {
+    const p = q.page || msg.ctxPage;
+    const id = `rv${msg.qzId}_${k}`;
+    if ((S.review[p] || []).some(it => it.id === id)) return;
+    const picked = msg.picked[k];
+    (S.review[p] = S.review[p] || []).push({
+      id,
+      question: q.q,
+      why: (q.why_wrong || [])[picked > q.correct ? picked - 1 : picked] || '',
+      chose: q.options[picked],
+      answer: q.options[q.correct],
+      excerpt: q.excerpt,
+      origin: q.origin,
+    });
+    pages.add(p);
+  });
+
+  const first = Math.min(...pages);
+  goPage(first);
+  setTimeout(() => {
+    pages.forEach(p => {
+      renderPad(p);
+      (S.review[p] || []).forEach(it => {
+        if (it.origin === 'slide') paintQuote(p, it.excerpt, 'miss', it.id);
+      });
+    });
+  }, 640);
+  toast('warn', `${wrong.length} câu sai — ghi chú đã dán vào giấy cạnh slide`);
+}
+
+function renderPad(page) {
+  const pad = document.querySelector(`.notepad[data-pad="${page}"]`);
+  if (!pad) return;
+  const items = S.review[page] || [];
+  pad.innerHTML = `
+    ${items.map(it => `
+      <div class="pad-note" data-note="${it.id}">
+        <div class="pad-tag">Chỗ này bạn còn nhầm</div>
+        <div class="pad-q">${esc(it.question)}</div>
+        <div class="pad-row"><s>${esc(it.chose)}</s></div>
+        <div class="pad-row"><b>${esc(it.answer)}</b></div>
+        ${it.why ? `<div class="pad-why">${esc(it.why)}</div>` : ''}
+        <div class="pad-quote">${esc(it.excerpt)}</div>
+        <button class="pad-ok" data-noteok="${it.id}">Tôi đã hiểu lỗi sai rồi</button>
+      </div>`).join('')}
+    <textarea class="pad-write" data-write="${page}"
+      placeholder="Ghi chú của bạn cho trang ${page}...">${esc(S.pad[page] || '')}</textarea>`;
+}
+
+function dismissReview(id) {
+  for (const p of Object.keys(S.review)) {
+    const before = S.review[p].length;
+    S.review[p] = S.review[p].filter(it => it.id !== id);
+    if (S.review[p].length !== before) {
+      $$(`#pg${p} .hl-mark[data-review="${id}"]`).forEach(el => el.remove());
+      renderPad(+p);
+    }
+  }
+}
+
 function streamBodyPreview(raw) {
   const marker = /"body"\s*:\s*\[/.exec(raw || '');
   if (!marker) return [];
@@ -1191,6 +1458,7 @@ function renderChat() {
         <div class="chips"><button class="qchip" data-retry="${i}">${t('retry')}</button><button class="qchip" data-ai-status>Kiểm tra cấu hình AI</button></div></div></div>`;
     }
     const a = m.data;
+    if (a.kind === 'quiz') return quizCard(a, m, i);
     const isClarify = a.kind === 'clarify', isRefuse = a.kind === 'refuse', low = a.conf > 0 && a.conf < 60;
     const summaryRead = a.summary && a.summary.estimated_reading_minutes
       ? ` · ~${a.summary.estimated_reading_minutes} phút đọc`
@@ -1256,7 +1524,8 @@ function wireChat() {
     const m = S.chat[+b.dataset.retry];
     S.chat.splice(+b.dataset.retry, 1);
     renderChat();
-    send(m.retry.text, m.retry.opts);
+    if (m.retry && m.retry.quiz) requestQuiz();
+    else send(m.retry.text, m.retry.opts);
   });
   $$('#chat [data-fb]').forEach(b => b.onclick = () => {
     const [, dir] = b.dataset.fb.split(':');
@@ -1266,6 +1535,28 @@ function wireChat() {
     toast(dir === 'up' ? 'ok' : 'warn', dir === 'up' ? 'Cảm ơn phản hồi!' : 'Đã ghi nhận — câu này sẽ được TA rà lại');
   });
   $$('#chat [data-ai-status]').forEach(b => b.onclick = showAiStatus);
+
+  $$('#chat [data-qpick]').forEach(b => b.onclick = () => {
+    const [mi, qi, oi] = b.dataset.qpick.split(':').map(Number);
+    const msg = S.chat[mi];
+    if (!msg || (msg.picked || {})[qi] !== undefined) return;
+    (msg.picked = msg.picked || {})[qi] = oi;
+    renderChat();
+    const qs = msg.data.questions || [];
+    if (qs.every((q, k) => msg.picked[k] !== undefined)) showQuizReview(msg);
+  });
+  $$('#chat [data-qflag]').forEach(b => b.onclick = () => {
+    const [mi, qi] = b.dataset.qflag.split(':').map(Number);
+    const msg = S.chat[mi];
+    if (!msg) return;
+    (msg.flagged = msg.flagged || {})[qi] = true;
+    renderChat();
+    toast('warn', 'Đã ghi nhận — câu này sẽ được rà lại');
+  });
+  $$('#chat [data-qgoto]').forEach(el => el.onclick = () =>
+    flashQuoteOnPage(+el.dataset.qgoto, el.dataset.qquote));
+
+  updateQuizFocus();
 }
 
 function renderAttach() {
@@ -1504,6 +1795,23 @@ $('#btnSend').onclick = () => {
   i.value = '';
 };
 $('#ask').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnSend').click(); });
+$('#btnSummary').onclick = () => send('Tóm tắt toàn bộ tài liệu này thành 5 gạch đầu dòng, ưu tiên các ý cần nhớ để ôn tập.', { page: S.page });
+// Nút "Thử thách" nằm trong từng trang, mà các trang được dựng lại mỗi lần đổi tài
+// liệu — nên bắt sự kiện nổi bọt ở #pages thay vì gắn trực tiếp vào từng nút.
+$('#pages').addEventListener('click', e => {
+  const btn = e.target.closest('[data-quizpage]');
+  if (btn) { e.stopPropagation(); requestQuiz(+btn.dataset.quizpage); return; }
+  const ok = e.target.closest('[data-noteok]');
+  if (ok) { e.stopPropagation(); dismissReview(ok.dataset.noteok); }
+});
+$('#pages').addEventListener('input', e => {
+  const ta = e.target.closest('[data-write]');
+  if (ta) S.pad[+ta.dataset.write] = ta.value;
+});
+$('#quizPeek').onclick = () => {
+  if (S.quizVeilFor) S.quizVeilFor.peeked = true;
+  updateQuizFocus();
+};
 $('#btnSummary').onclick = () => send(
   'Tóm tắt toàn bộ tài liệu này để ôn tập trong khoảng 2 phút, tối đa 5 gạch đầu dòng.',
   { page: S.page },

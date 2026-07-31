@@ -3,6 +3,7 @@ node_modules/
 *.env
 __pycache__/
 *.pyc
+cache/
 eval/agent_traces.jsonl
 eval/*_smoke.json
 eval/*_smoke.jsonl
