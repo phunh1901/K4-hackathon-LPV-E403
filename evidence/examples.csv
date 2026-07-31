@@ -1,0 +1,238 @@
+category,conversation_id,turn_id,student_prompt,tutor_answer,citations,matched_keywords,reason_selected
+summary_without_citation,C0001,T0649,"(Trang 37, đoạn được chọn: ""tóm tắt nội dung chính trong slide này"")
+tóm tắt nội dung chính trong slide này","Xin lỗi bạn, tôi không tìm thấy nội dung cụ thể cho slide 37 trong tài liệu hiện có. Bạn có thể cung cấp thêm thông tin hoặc tiêu đề của slide đó để tôi có thể hỗ trợ bạn chính xác hơn không?",[],summary:tóm tắt|nội dung chính; failure:không tìm thấy,"Prompt khớp tóm tắt, nội dung chính; citation rỗng (giá trị rỗng tương đương '[]')."
+summary_without_citation,C0002,T0905,"(Trang 50, đoạn được chọn: ""tóm gọn những nội dung quan trọng nhất trong day 04 này"")
+tóm gọn những nội dung quan trọng nhất trong day 04 này","Chào bạn, hiện tại tôi không tìm thấy tài liệu tổng hợp đầy đủ cho toàn bộ nội dung của Ngày 04 trong slide được cung cấp.
+
+Nếu bạn có thắc mắc về một khái niệm cụ thể nào đó đã học trong buổi này (ví dụ: các kỹ thuật tối ưu hóa prompt, cơ chế gọi tool của agent, hoặc cách xử lý ngữ cảnh), hãy cho tôi biết tên khái niệm hoặc đoạn văn bản cụ thể mà bạn muốn tìm hiểu. Tôi sẽ tra cứu chi tiết và giải thích giúp bạn ngay nhé.",[],summary:tóm gọn; failure:không tìm thấy,Prompt khớp tóm gọn; citation rỗng (giá trị rỗng tương đương '[]').
+summary_without_citation,C0015,T0541,"(Trang 2, đoạn được chọn: ""Giúp tôi viết summary chi tiết và đầy đủ nhất về toàn bộ slide bài giảng ngày hôm nay"")
+Giúp tôi viết summary chi tiết và đầy đủ nhất về toàn bộ slide bài giảng ngày hôm nay","Rất tiếc, hiện tại trong nội dung slide bài giảng của ngày hôm nay không chứa thông tin chi tiết về khái niệm ""ReAct Design Pattern"" hay một bản tóm tắt tổng quát về toàn bộ các slide.
+
+Để tôi có thể hỗ trợ bạn hiệu quả nhất, bạn có thể chia sẻ cụ thể hơn về các chủ đề hoặc các từ khóa quan trọng mà bạn muốn tóm tắt trong bài học hôm nay không? Tôi sẽ dựa vào nội dung đó để giải thích và tổng hợp giúp bạn.",[],summary:summary,Prompt khớp summary; citation rỗng (giá trị rỗng tương đương '[]').
+summary_without_citation,C0020,T0122,"(Trang 5, đoạn được chọn: ""tóm tắt hết slice trong vài câu đi"")
+tóm tắt hết slice trong vài câu đi","Rất tiếc là mình đã thử tìm kiếm nội dung tổng quan từ các slide (với các từ khóa như ""giới thiệu"", ""mục tiêu"", ""tóm tắt"") nhưng hệ thống chưa trả về kết quả cụ thể để mình có thể khái quát lại toàn bộ bài học cho bạn.
+
+Vì mình không có quyền truy cập trực tiếp vào toàn bộ tệp tài liệu mà phải thông qua tìm kiếm từ khóa, bạn có thể giúp mình bằng cách:
+1. Cho mình biết **chủ đề chính** của buổi học hôm nay là gì (ví dụ: Giới thiệu về AI, Tìm kiếm theo chiều sâu, v.v.)?
+2. Hoặc bạn có thể chụp/chép một đoạn nội dung quan trọng nào đó, mình sẽ dựa vào đó để tra cứu và tóm tắt giúp bạn ngay!",[],summary:tóm tắt,Prompt khớp tóm tắt; citation rỗng (giá trị rỗng tương đương '[]').
+summary_without_citation,C0031,T0408,"(Trang 14, đoạn được chọn: ""tóm tắt các chủ đề chính của slide day05-lecture-slides-batch03.pdf này"")
+tóm tắt các chủ đề chính của slide day05-lecture-slides-batch03.pdf này","Rất tiếc, tôi không thể tìm thấy tệp tin hoặc nội dung chi tiết của `day05-lecture-slides-batch03.pdf` trong hệ thống hiện tại để tóm tắt các chủ đề chính cho bạn.
+
+Bạn có thể cung cấp thêm thông tin hoặc tên cụ thể của chủ đề/khái niệm bạn đang muốn tìm hiểu trong ngày học này không? Tôi sẽ hỗ trợ bạn giải đáp ngay khi có nội dung cụ thể.",[],summary:tóm tắt,Prompt khớp tóm tắt; citation rỗng (giá trị rỗng tương đương '[]').
+visual_failure,C0002,T0092,"(Trang 50, đoạn được chọn: ""kỹ thuật tối ưu prompt, cơ chế gọi tool và cách xử lý ngữ cảnh"")
+kỹ thuật tối ưu prompt, cơ chế gọi tool và cách xử lý ngữ cảnh","Rất tiếc, tôi không tìm thấy tài liệu tổng hợp đầy đủ cho nội dung của Day 04 trong các file slide đã được cung cấp.
+
+Để có thể giúp bạn tóm tắt chính xác, bạn có thể cho tôi biết tên các chủ đề hoặc mục tiêu học tập cụ thể trong Day 04 được ghi chú trong giáo trình của bạn không? Khi có thông tin đó, tôi sẽ giúp bạn giải thích từng phần về kỹ thuật tối ưu prompt, cơ chế gọi tool và quản lý ngữ cảnh một cách cụ thể nhất.",[],visual:ảnh; failure:không tìm thấy,Prompt khớp ảnh; tutor khớp failure phrase không tìm thấy.
+visual_failure,C0051,T0083,"(Trang 52, đoạn được chọn: ""có tính năng slide toàn màn hình không"")
+có tính năng slide toàn màn hình không ","Rất tiếc, tôi đã kiểm tra lại tài liệu bài giảng được cung cấp nhưng không tìm thấy thông tin nào đề cập đến tính năng slide toàn màn hình. Có vẻ như tính năng này không được mô tả trong nội dung của buổi học hôm nay.",[],visual:hình; failure:không tìm thấy,Prompt khớp hình; tutor khớp failure phrase không tìm thấy.
+visual_failure,C0108,T0816,"(Trang 2, đoạn được chọn: ""người trong ảnh là ai"")
+người trong ảnh là ai","Rất xin lỗi bạn, trong tài liệu của bài học hôm nay không có thông tin hay hình ảnh nào về danh tính của một cá nhân cụ thể. Nội dung tài liệu tập trung vào các tiêu chí thiết kế chỉ số (metric) cho tính năng AI [trang 59].
+
+Nếu bạn đang thắc mắc về một hình ảnh nào đó trong slide, có thể đó là ví dụ minh họa hoặc thông tin nằm ngoài phạm vi tài liệu kỹ thuật này.",[59],visual:ảnh; failure:không có thông tin,Prompt khớp ảnh; tutor khớp failure phrase không có thông tin.
+visual_failure,C0322,T0405,"(Trang 1, đoạn được chọn: ""làm sao để cái này dánh giá hoàn thành của slide"")
+làm sao để cái này dánh giá hoàn thành của slide ","Rất tiếc, tôi không tìm thấy thông tin cụ thể về cách đánh giá hoàn thành slide trong nội dung của bài học ngày hôm nay. Thông thường, việc đánh giá này có thể nằm ở các yêu cầu của giảng viên trên hệ thống LMS hoặc thông qua các bài tập đi kèm với bài giảng. Bạn có thể kiểm tra lại hướng dẫn trong môn học hoặc hỏi trực tiếp giảng viên về quy định cụ thể cho phần này nhé.",[],visual:cái này; failure:không tìm thấy,Prompt khớp cái này; tutor khớp failure phrase không tìm thấy.
+visual_failure,C0346,T0840,"(Trang 59, đoạn được chọn: ""phân tích hình ảnh được khoanh đỏ ở slide 59"")
+phân tích hình ảnh được khoanh đỏ ở slide 59","Rất tiếc, tôi không tìm thấy thông tin hoặc hình ảnh cụ thể được khoanh đỏ tại slide 59 trong tài liệu bài giảng được cung cấp. Có vẻ như nội dung đó không hiển thị trong dữ liệu slide hiện có của tôi.
+
+Bạn có thể cung cấp thêm thông tin về chủ đề hoặc nội dung hình ảnh đó không? Tôi sẽ dựa vào đó để hỗ trợ bạn phân tích.",[],visual:hình|ảnh|khoanh; failure:không tìm thấy,"Prompt khớp hình, ảnh, khoanh; tutor khớp failure phrase không tìm thấy."
+summary_success,C0003,T1201,"(Trang 1, đoạn được chọn: ""tóm tắt"")
+tóm tắt","Tool calling trong Prompt Engineering là kỹ thuật cho phép mô hình ngôn ngữ lớn (LLM) tương tác với các công cụ bên ngoài (ví dụ: truy vấn cơ sở dữ liệu, gọi API thời tiết, hoặc thực thi các hàm tính toán) để thực hiện những tác vụ mà bản thân mô hình không thể tự làm được [trang 3].
+
+Thay vì chỉ trả về văn bản, mô hình sẽ phân tích yêu cầu của người dùng, xác định công cụ cần thiết và trả về cấu trúc dữ liệu (thường là JSON) để hệ thống thực thi công cụ đó. Sau đó, kết quả từ công cụ sẽ được đưa ngược lại cho mô hình để nó tổng hợp và đưa ra phản hồi cuối cùng cho người dùng.
+
+Đây là một thành phần quan trọng trong việc xây dựng các AI Agents có khả năng thực hiện các hành động thực tế [trang 96].","[3, 96]",summary:tóm tắt,Prompt khớp tóm tắt và citation không rỗng.
+summary_success,C0010,T0268,"(Trang 22, đoạn được chọn: ""Memory injection
+■ Chỉ đưa vào facts thật sự cần cho
+task hiện tại
+■ Ưu tiên recent history hoặc
+relevant history, không dump toàn
+bộ transcript
+■ Tốt cho support agent, coding
+assistant, tutor nhiều lượt
+Compression
+■ Summarize: tóm tắt phần cũ
+■ Drop: bỏ hẳn phần không còn liên
+quan
+■ Archive: đẩy"")
+Giải thích đoạn bôi đen ở Trang 22.","Đoạn bôi đen này giới thiệu hai kỹ thuật quan trọng để tối ưu hóa context window (ngữ cảnh) khi làm việc với các mô hình ngôn ngữ lớn:
+
+1.  **Memory Injection (Cấp dữ liệu bộ nhớ):** Đây là cách chọn lọc thông tin để đưa vào prompt thay vì gửi toàn bộ lịch sử hội thoại dài.
+    *   Chỉ nên đưa vào các thông tin (facts) thực sự cần thiết cho tác vụ đang xử lý.
+    *   Nên ưu tiên các thông tin gần đây (recent history) hoặc thông tin có liên quan trực tiếp (relevant history).
+    *   Kỹ thuật này rất hiệu quả cho các ứng dụng như hỗ trợ khách hàng, trợ lý lập trình hoặc gia sư AI cần duy trì hội thoại qua nhiều lượt.
+
+2.  **Compression (Nén dữ liệu):** Dùng để xử lý khi lịch sử hội thoại trở nên quá dài. Có ba cách thực hiện:
+    *   **Summarize:** Tóm tắt lại nội dung cũ để giữ ý chính mà vẫn tiết kiệm không gian.
+    *   **Drop:** Loại bỏ hoàn toàn các phần thông tin không còn quan trọng hoặc không còn liên quan.
+    *   **Archive:** Di chuyển bớt các thông tin cũ sang một bộ nhớ lưu trữ ngoài thay vì để trực tiếp trong prompt [trang 22].",[22],summary:tóm tắt,Prompt khớp tóm tắt và citation không rỗng.
+summary_success,C0018,T0699,"(Trang 49, đoạn được chọn: ""tóm tắt toàn bộ slide sau đó đưa ra các ý chính"")
+tóm tắt toàn bộ slide sau đó đưa ra các ý chính ","Dựa trên nội dung các slide đã tra cứu, bài học ngày hôm nay tập trung vào việc giới thiệu tổng quan về hệ sinh thái Trí tuệ Nhân tạo (AI) và các khái niệm cốt lõi đang dẫn dắt công nghệ hiện nay.
+
+Dưới đây là tóm tắt các ý chính:
+
+*   **Hệ sinh thái AI:** Slide làm rõ mối quan hệ phân cấp giữa các khái niệm từ rộng đến hẹp: AI > Machine Learning > Deep Learning > Generative AI > LLM [trang 6].
+*   **AI (Trí tuệ nhân tạo):** Là ""chiếc ô"" lớn nhất, bao gồm mọi hệ thống có yếu tố thông minh, kể cả các hệ thống dựa trên luật lệ thủ công hay robot [trang 6].
+*   **Machine Learning (Học máy):** Thay vì viết mã thủ công, hệ thống học trực tiếp từ dữ liệu (ví dụ: bộ lọc spam, hệ thống gợi ý phim) [trang 6].
+*   **Deep Learning (Học sâu):** Sử dụng các mạng nơ-ron nhiều tầng để tự động học các đặc trưng phức tạp từ dữ liệu [trang 6].
+*   **Generative AI (AI tạo sinh):** Một nhánh của AI tập trung vào việc tạo ra nội dung mới như văn bản, hình ảnh, hoặc mã nguồn [trang 6].
+*   **LLM (Mô hình ngôn ngữ lớn):** Là các mô hình nền tảng chuyên về ngôn ngữ, đóng vai trò trung tâm trong làn sóng AI hiện nay (như GPT, Claude, Kimi) [trang 6].",[6],summary:tóm tắt|ý chính,"Prompt khớp tóm tắt, ý chính và citation không rỗng."
+summary_success,C0039,T0845,"(Trang 15, đoạn được chọn: ""Từ Anthropic: Agent Patterns Nên Tăng Dần Theo Nhu Cầu
+Augmented
+LLM
+Prompt +
+docs + tools
+Prompt
+Chaining
+Bước nối
+tiếp rõ ràng
+Routing
+Chọn path
+/ specialist
+Orchestrator
+Worker
+Phân việc
+rồi tổng hợp
+Agent
+Tự quyết nhiều bước
+Bắt đầu từ cấu trúc đơn giản nhất đủ dùng. Agent là pattern mạnh nhưng "")
+Giải thích đoạn bôi đen ở Trang 15.","Đoạn này từ Anthropic đưa ra lời khuyên về việc xây dựng các hệ thống AI theo lộ trình tăng dần độ phức tạp, thay vì áp dụng mô hình Agent (mô hình phức tạp nhất) ngay từ đầu. Nội dung nhấn mạnh việc bắt đầu với cấu trúc đơn giản nhất có thể đáp ứng được nhu cầu công việc [trang 15].
+
+Lộ trình tăng dần được đề xuất bao gồm:
+
+1.  **Augmented LLM:** Cung cấp cho mô hình ngữ cảnh bổ sung qua tài liệu hoặc các công cụ cơ bản.
+2.  **Prompt Chaining:** Chia nhỏ quy trình thành các bước nối tiếp rõ ràng thay vì cố gắng giải quyết tất cả trong một lần hỏi.
+3.  **Routing:** Phân loại yêu cầu để chọn đường đi (path) hoặc chuyên gia (specialist) phù hợp xử lý.
+4.  **Orchestrator-Worker:** Hệ thống phân chia công việc cho các thực thể chuyên trách (worker), sau đó tổng hợp kết quả.
+5.  **Agent:** Mức độ cao nhất, nơi hệ thống có khả năng tự quyết định chuỗi hành động nhiều bước để đạt được mục tiêu.
+
+Thông điệp chính là: **Agent là một công cụ mạnh mẽ nhưng cũng phức tạp nhất**, do đó bạn nên chọn cấu trúc phù hợp với độ khó của bài toán thay vì mặc định chọn cấu trúc phức tạp nhất [trang 15].",[15],summary:tổng hợp,Prompt khớp tổng hợp và citation không rỗng.
+summary_success,C0043,T1061,"(Trang 17, đoạn được chọn: ""tóm gọn lại về kiến trúc Agent"")
+tóm gọn lại về kiến trúc Agent","Để tóm gọn về kiến trúc Agent theo nội dung bài học, bạn có thể hình dung hệ thống bao gồm các thành phần cốt lõi tương tác với nhau như sau [trang 17]:
+
+1.  **Perception (Cảm nhận):** Là ""cổng vào"", nơi agent tiếp nhận thông tin từ môi trường, bao gồm yêu cầu người dùng, phản hồi từ công cụ (tool output) hoặc các phản hồi (feedback) khác.
+2.  **Reasoning (Suy luận - LLM Core):** Đóng vai trò là ""bộ não"", thực hiện phân tích trạng thái hiện tại và đưa ra quyết định cho bước tiếp theo.
+3.  **Memory (Bộ nhớ):**
+    *   **Short-term memory:** Lưu trữ ngữ cảnh hiện tại (context window) giúp agent không bị ""mất mạch"" trong khi đang thực hiện công việc.
+    *   **Long-term memory:** Lưu trữ dữ liệu dài hạn (thông qua Database hoặc các kho lưu trữ khác).
+4.  **Action (Hành động):** Là ""cổng ra"", nơi agent thực hiện các hành động cụ thể như gọi API, tìm kiếm (search), hoặc đưa ra câu trả lời cuối cùng cho người dùng.
+
+Luồng thông tin trong kiến trúc này mang tính hai chiều, cho phép agent liên tục cập nhật trạng thái thông qua các vòng lặp giữa suy luận, ghi nhớ và hành động [trang 17].",[17],summary:tóm gọn,Prompt khớp tóm gọn và citation không rỗng.
+visual_success,C0002,T0330,"(Trang 52, đoạn được chọn: ""cách xử lý ngữ cảnh"")
+cách xử lý ngữ cảnh","Việc xử lý ngữ cảnh (Context Management) trong kỹ thuật lập trình Agent không chỉ dừng lại ở việc viết câu lệnh (prompt), mà là quản lý toàn bộ tập token mà mô hình đọc vào. Một cấu trúc ngữ cảnh hiệu quả thường bao gồm các thành phần sau:
+
+*   **System (policy):** Định nghĩa vai trò, luật lệ và hành vi của agent.
+*   **History (recent/relevant):** Lưu trữ các lượt đối thoại gần đây hoặc thông tin có liên quan nhất.
+*   **Current input:** Yêu cầu hoặc nhiệm vụ cụ thể mà agent đang thực hiện ở thời điểm hiện tại.
+*   **Tools (schemas):** Các định nghĩa về công cụ (function definitions) mà agent có thể sử dụng.
+*   **Output (buffer):** Khoảng trống dành riêng để mô hình sinh phản hồi [trang 43].
+
+Điểm quan trọng nhất trong quản lý ngữ cảnh là việc **phân bổ token (token budget allocation)** một cách chủ động. Bạn cần đảm bảo rằng lịch sử hội thoại, các công cụ, và ví dụ minh họa không chiếm hết phần không gian cần thiết, tránh tình trạng hết bộ nhớ đệm khiến mô hình không đủ chỗ để trả về kết quả cuối cùng [trang 43].",[43],visual:ảnh,Prompt khớp ảnh; tutor không khớp failure phrase nào.
+visual_success,C0011,T1091,"(Trang 28, đoạn được chọn: ""Bên trong Transformer: đầu ra luôn là một phân bố xác suất
+Với mọi ngữ cảnh, model chấm điểm MỌI từ trong từ vựng — “landˮ 22%, “forestˮ 9%… — rồi chọn theo xác su"")
+Giải thích đoạn bôi đen ở Trang 28: ""Bên trong Transformer: đầu ra luôn là một phân bố xác suất
+Với mọi ngữ cảnh, model chấm điểm MỌI từ trong từ vựng — “landˮ 22%, “forestˮ 9%… — rồi chọn theo xác su""","Đoạn trích này mô tả cơ chế đầu ra của mô hình ngôn ngữ dựa trên kiến trúc Transformer trong quá trình dự đoán từ tiếp theo.
+
+Cụ thể, quá trình này diễn ra như sau:
+
+1.  **Dự đoán trên toàn bộ từ vựng:** Thay vì chỉ chọn một từ duy nhất ngay lập tức, mô hình tính toán một điểm số (score) cho **tất cả** các từ có trong từ vựng của nó dựa trên ngữ cảnh đầu vào.
+2.  **Phân bố xác suất:** Các điểm số này sau đó được chuyển đổi (thông qua hàm Softmax) thành một phân bố xác suất, nơi tổng xác suất của tất cả các từ bằng 100%. Ví dụ, nếu ngữ cảnh là ""The trees are in the..."", mô hình có thể gán xác suất 22% cho từ ""land"", 9% cho ""forest"", và các xác suất nhỏ hơn cho những từ khác.
+3.  **Lựa chọn từ:** Cuối cùng, mô hình sẽ chọn từ tiếp theo để hiển thị dựa trên các xác suất này (có thể chọn từ có xác suất cao nhất hoặc lấy mẫu ngẫu nhiên dựa trên phân bố đó để tăng tính sáng tạo) [trang 28].
+
+Tóm lại, bản chất của Transformer là luôn xem xét toàn bộ kho từ vựng và đưa ra một dự đoán mang tính xác suất thay vì một kết quả cố định cứng nhắc.",[28],visual:ảnh,Prompt khớp ảnh; tutor không khớp failure phrase nào.
+visual_success,C0013,T0076,"(Trang 31, đoạn được chọn: ""Mỗi lần trả lời, model chỉ nhìn được một lượng chữ có
+hạn — gọi là context. Hãy hình dung một bàn làm việc:
+mọi thứ muốn model ""thấy"" phải bày lên bàn.
+Quy đổi: 128K token ≈ một cuốn sách 300 trang; 1M
+token ≈ 45 cuốn sách trên bàn cùng lúc.
+Bàn đầy quá thì đồ ở giữa bàn dễ bị bỏ sót — đặt điều
+qua"")
+Giải thích đoạn bôi đen ở Trang 31: ""Mỗi lần trả lời, model chỉ nhìn được một lượng chữ có
+hạn — gọi là context. Hãy hình dung một bàn làm việc:
+mọi thứ muốn model ""thấy"" phải bày lên bàn.
+Quy đổi: 128K token ≈ một cuốn sách 300 trang; 1M
+token ≈ 45 cuốn sách trên bàn cùng lúc.
+Bàn đầy quá thì đồ ở giữa bàn dễ bị bỏ sót — đặt điều
+quan trọng ở giữa một prompt rất dài, model có thể
+""quên"" mất""","Đoạn này giải thích về giới hạn ngữ cảnh (context window) của các mô hình ngôn ngữ lớn (LLM).
+
+Khi bạn yêu cầu mô hình xử lý một nội dung, nó chỉ có thể ""nhìn thấy"" và ghi nhớ một lượng thông tin nhất định trong một lần xử lý, được gọi là **context window** [trang 31].
+
+Để dễ hình dung:
+- Hãy coi context window như một chiếc bàn làm việc: Chỉ những gì đặt trên bàn thì mô hình mới có thể sử dụng để trả lời.
+- Các con số như 128K hay 1M token chính là kích thước của chiếc bàn đó; bàn càng lớn thì bạn càng bày được nhiều tài liệu (sách) lên cùng lúc [trang 31].
+
+Tuy nhiên, có một vấn đề là khi ""bàn"" quá đầy (nội dung prompt quá dài), mô hình dễ gặp hiện tượng ""quên"". Cụ thể, các thông tin quan trọng bị đặt ở giữa một đoạn văn bản rất dài thường dễ bị mô hình bỏ sót hoặc xử lý kém chính xác hơn so với thông tin ở đầu hoặc cuối prompt [trang 31]. Điều này tương tự như việc bạn để quên một tài liệu quan trọng bị vùi lấp giữa chồng giấy tờ dày trên bàn làm việc.",[31],visual:hình,Prompt khớp hình; tutor không khớp failure phrase nào.
+visual_success,C0079,T0800,"(Trang 11, đoạn được chọn: ""Các hướng đi lần lượt chạm trần:
+Hướng symbolic (dạy máy bằng luật/quy tắc): bắt đầu đuối trước thế giới quá nhiều ngữ cảnh
+Hướng Perceptron (thay vì viết hết luật, mình có thể cho máy học từ ví dụ) cũng gặp vấn đề vì
+quá đơn giản"")
+Giải thích đoạn bôi đen ở Trang 11.","Đoạn văn này tóm tắt hai thách thức lớn mà ngành AI đã gặp phải trong giai đoạn đầu phát triển [trang 11]:
+
+1.  **Hướng Symbolic (AI biểu tượng):**
+    *   **Cách làm:** Các nhà khoa học cố gắng ""dạy"" máy tính bằng cách nạp vào hàng nghìn quy tắc logic (ví dụ: ""Nếu có cánh và biết bay thì là chim"").
+    *   **Vấn đề (Chạm trần):** Thế giới thực quá phức tạp và nhiều ngữ cảnh. Một quy tắc có thể đúng trong trường hợp này nhưng sai trong trường hợp khác. Việc viết ra mọi luật lệ cho mọi tình huống là không khả thi, khiến máy tính trở nên ""đuối"" khi gặp những tình huống chưa được lập trình sẵn.
+
+2.  **Hướng Perceptron (Mạng nơ-ron sơ khai):**
+    *   **Cách làm:** Thay vì viết luật, người ta cho máy học từ dữ liệu ví dụ (tiền thân của Machine Learning). Máy sẽ tự điều chỉnh các tham số để nhận diện mẫu.
+    *   **Vấn đề (Chạm trần):** Mô hình Perceptron lúc đó (1969) quá đơn giản, chỉ là một lớp nơ-ron đơn lẻ. Nó chỉ giải quyết được các bài toán phân loại tuyến tính (có thể chia tách bằng một đường thẳng) và hoàn toàn thất bại trước các bài toán logic cơ bản nhưng phức tạp hơn về mặt không gian như bài toán XOR.
+
+Sự ""chạm trần"" của cả hai hướng đi này vào cuối những năm 1960 đã dẫn tới giai đoạn ""Mùa đông AI"" lần thứ nhất, khi các khoản đầu tư và nghiên cứu bị cắt giảm mạnh.",[11],visual:ảnh,Prompt khớp ảnh; tutor không khớp failure phrase nào.
+visual_success,C0087,T0215,"(Trang 28, đoạn được chọn: ""Trong paper gốc, Action chỉ là một chuỗi text theo format cố định, ví dụ
+search[entity] hay lookup[string] — mô hình phải tự “nhớ” đúng cú pháp, và hệ
+thống bên ngoài phải parse bằng regex/string matching để biết nên gọi tool nào
+với tham số g"")
+Giải thích đoạn bôi đen ở Trang 28.","Đoạn này mô tả cách các ReAct agent sơ khai thực hiện việc gọi công cụ (tool) bằng cách dựa hoàn toàn vào định dạng văn bản thay vì cấu trúc dữ liệu chặt chẽ (như JSON).
+
+Cụ thể, quá trình này diễn ra như sau:
+* **Tự sinh định dạng text:** Thay vì gọi một hàm lập trình trực tiếp, mô hình ngôn ngữ (LLM) được yêu cầu xuất ra một chuỗi văn bản theo một mẫu (format) định sẵn, ví dụ: `search[tên_đối_tượng]`.
+* **Phân tích cú pháp (Parsing):** Hệ thống bên ngoài (không phải LLM) sẽ giám sát phản hồi của mô hình. Nó sử dụng các kỹ thuật xử lý chuỗi như biểu thức chính quy (regex) hoặc khớp chuỗi (string matching) để nhận diện định dạng đó.
+* **Kích hoạt công cụ:** Khi nhận diện được cú pháp `search[...]` hoặc `lookup[...]`, hệ thống sẽ trích xuất tham số bên trong cặp ngoặc vuông, từ đó mới thực sự gọi tới các công cụ (tool) tương ứng để lấy thông tin thực tế.
+
+Cách tiếp cận này yêu cầu mô hình phải có khả năng ghi nhớ và tuân thủ chính xác cú pháp văn bản đó để hệ thống bên ngoài có thể hiểu được lệnh gọi công cụ mà nó muốn thực hiện.",[],visual:hình,Prompt khớp hình; tutor không khớp failure phrase nào.
+borderline_case,C0069,T0499,"(Trang 41, đoạn được chọn: ""Trang 1 / 43
+day04-prompt-engineering-tool-calling.pdf
+Trang 1
+Kéo đến trang này để mở note riêng của trang.
+Trang 2 / 43
+day04-prompt-engineering-tool-calling.pdf
+Trang 2
+Kéo đến trang này để mở note riêng của trang.
+Trang 3 / 43
+day04-prompt-engineering-tool-calling.pdf
+Trang 3
+Kéo đến trang này đ"")
+Hãy viết lại toàn bộ nội dung trong slide","Chào bạn, rất vui được hỗ trợ bạn học tập.
+
+Vì tài liệu học tập của ngày hôm nay bao gồm tổng cộng 43 trang với rất nhiều nội dung chi tiết về kỹ thuật ""Prompt Engineering"" và ""Tool Calling"", tôi không thể chép lại toàn bộ nội dung của toàn bộ file trong một câu trả lời.
+
+Để tôi có thể hỗ trợ bạn hiệu quả nhất, bạn vui lòng cho biết bạn đang quan tâm đến phần nào hoặc khái niệm cụ thể nào trong bài giảng nhé (ví dụ: định nghĩa về tool calling, cách cấu trúc prompt, hoặc các ví dụ cụ thể trong slide). Tôi sẽ giúp bạn giải thích và trích dẫn thông tin chính xác từ tài liệu.",[],summary:note,Chỉ khớp từ tiếng Anh 'note'; substring heuristic có thể nhầm ngữ cảnh.
+borderline_case,C0112,T0356,"(Trang 41, đoạn được chọn: ""đáng tin
+Kéo đến trang này để mở note ri"")
+Giải thích đoạn bôi đen ở Trang 41.","Rất tiếc, nội dung bạn trích dẫn không xuất hiện trong tài liệu bài giảng hiện có của ngày hôm nay. Có vẻ như trang 41 hoặc đoạn văn bản đó không chứa nội dung chuyên môn về kỹ thuật ""prompt engineering"" hoặc ""tool calling"" mà chúng ta đang học.
+
+Nếu bạn có thể cung cấp thêm ngữ cảnh hoặc nội dung cụ thể của trang/đoạn văn đó, tôi sẽ hỗ trợ giải thích rõ hơn cho bạn nhé!",[],summary:note,Chỉ khớp từ tiếng Anh 'note'; substring heuristic có thể nhầm ngữ cảnh.
+borderline_case,C0121,T0802,"(Trang 3, đoạn được chọn: ""phần này có quan trọng không"")
+phần này có quan trọng không","Đây là chương trình tổng thể (Agenda) của buổi học, đóng vai trò là ""bản đồ"" dẫn đường cho bạn. Việc nắm bắt các nội dung này rất quan trọng vì những lý do sau:
+
+*   **Xây dựng nền tảng:** Các phần như ""Bức tranh AI & các tầng của AI"" và ""Lịch sử AI"" giúp bạn hiểu bối cảnh và cấu trúc hệ thống, tạo cơ sở để tiếp thu các kiến thức kỹ thuật chuyên sâu sau đó.
+*   **Kết nối lý thuyết và thực hành:** Chương trình đi từ lý thuyết (cơ chế vận hành LLM) đến ứng dụng thực tế (cách chọn model, quản lý chi phí token và thực hiện cuộc gọi API). Việc đi theo trình tự này giúp bạn hiểu không chỉ ""cái gì"" (what) mà còn là ""tại sao"" (why) và ""làm thế nào"" (how) để triển khai một hệ thống AI.
+*   **Tư duy hệ thống:** Hiểu về sự chuyển dịch từ LLM sang AI Agent sẽ giúp bạn có cái nhìn toàn diện hơn về tiềm năng của công nghệ thay vì chỉ xem LLM là các mô hình ngôn ngữ đơn thuần.
+
+Tóm lại, Agenda không chỉ là danh sách các mục, mà là lộ trình tư duy cần thiết để bạn có thể làm chủ kiến thức từ nền tảng đến kỹ năng thực thi trong suốt buổi học.",[],visual:phần này,"Chỉ khớp từ chỉ xuất chung chung ('phần này'/'cái này'), nên có thể không thật sự cần dữ liệu hình ảnh."
+borderline_case,C0175,T0186,"(Trang 7, đoạn được chọn: ""ering
+Triển khai RAG, Agent, Guardrails, Evaluation
+Đánh giá) và vận hành hệ thống AI thực tế.
+Product Thinking Inspired)
+Xác định đúng bài toán, thấu hiểu người dùng,
+tránh xây dựng những tính năng không mang lại
+giá trị.
+Design Thinking Everyday Things)
+Thiết kế dựa trên mô hình tư duy Mental
+"")
+bạn hãy tóm tắt ý chính trong tài liệu này","Tài liệu này giới thiệu ba trụ cột nền tảng để phát triển sản phẩm AI thành công, bao gồm [trang 7]:
+
+1.  **AI Engineering:** Tập trung vào các kỹ thuật kỹ thuật để xây dựng hệ thống AI thực tế, bao gồm triển khai RAG (Retrieval-Augmented Generation), Agent, thiết lập các Guardrails (rào cản an toàn), thực hiện đánh giá (Evaluation) và vận hành hệ thống [trang 7].
+2.  **Product Thinking:** Dựa trên tư duy sản phẩm để xác định đúng bài toán cần giải quyết và thấu hiểu người dùng, nhằm tránh việc lãng phí nguồn lực cho các tính năng không mang lại giá trị [trang 7].
+3.  **Design Thinking:** Nhấn mạnh vào việc thiết kế dựa trên các mô hình tư duy (mental models) của người dùng để tạo ra các sản phẩm dễ sử dụng và hiệu quả [trang 7].",[7],summary:tóm tắt|ý chính; visual:hình,Prompt đồng thời khớp rule summary và visual; phân loại phụ thuộc mục tiêu phân tích.
+borderline_case,C0179,T0817,"(Trang 2, đoạn được chọn: ""cho tôi note của toàn slide"")
+cho tôi note của toàn slide","Chào bạn, rất tiếc là hệ thống hiện không có tóm tắt ghi chú (notes) tổng quát cho toàn bộ slide của bài giảng này. Để tôi có thể hỗ trợ bạn tốt nhất, bạn có thể cho biết cụ thể chủ đề hoặc khái niệm nào trong bài học mà bạn đang cần làm rõ không? Tôi sẽ tra cứu chi tiết nội dung đó giúp bạn.",[],summary:note,Chỉ khớp từ tiếng Anh 'note'; substring heuristic có thể nhầm ngữ cảnh.

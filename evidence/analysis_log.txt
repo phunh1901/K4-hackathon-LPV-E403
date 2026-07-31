@@ -1,0 +1,51 @@
+Input file: data/vlearn-pack/chatlog/chat_history_anonymized_for_hackathon.csv
+Rows loaded: 2522
+Detected columns:
+  Header: conversation_id, user_id, day_code, conversation_mode, turn_id, turn_status, message_id, role, content, move_used, citations, misconceptions, follow_ups, rating, asked_check_question, message_created_at, llm_call_count, models_used, total_input_tokens, total_output_tokens, total_cost_usd, avg_latency_ms
+  conversation_id: conversation_id
+  turn_id: turn_id
+  role: role
+  content: content
+  citations: citations
+  timestamp: message_created_at
+  message_id: message_id
+QA pairs created: 1261
+Pairing method: Ghép theo (conversation_id, turn_id); mỗi turn hợp lệ ghép student với tutor thuộc cùng turn.
+Summary keyword rules: tóm tắt | tóm gọn | tổng hợp | summary | ý chính | nội dung chính | cần nhớ | cần học | ghi chú | note
+Visual keyword rules: hình | ảnh | bảng | biểu đồ | sơ đồ | khoanh | mũi tên | trục | nhánh màu | phần này | cái này
+Citation-empty rules: null | blank string | [] | {} | n/a | na | nan | none | JSON containers containing only semantically empty values
+Failure keyword rules: không thể xác định | không nhìn thấy | không có thông tin | không tìm thấy | vui lòng cung cấp thêm
+Counts:
+  total_qa_pairs: 1261
+  citation_empty_pairs: 582
+  citation_nonempty_pairs: 679
+  summary_requests: 159
+  summary_without_citations: 101
+  summary_with_citations: 58
+  visual_requests: 70
+  visual_failures: 10
+  visual_successes: 60
+  visual_with_empty_citations: 30
+  visual_with_citations: 40
+  visual_failures_without_citations: 9
+  visual_failures_with_citations: 1
+  summary_visual_overlap: 4
+  neither_summary_nor_visual: 1036
+  counts_by_summary_keyword: {"cần học": 3, "cần nhớ": 2, "ghi chú": 1, "note": 11, "nội dung chính": 8, "summary": 5, "tóm gọn": 2, "tóm tắt": 126, "tổng hợp": 16, "ý chính": 16}
+  counts_by_visual_keyword: {"biểu đồ": 2, "bảng": 2, "cái này": 3, "hình": 30, "khoanh": 11, "mũi tên": 0, "nhánh màu": 1, "phần này": 4, "sơ đồ": 0, "trục": 1, "ảnh": 24}
+  counts_by_failure_keyword: {"không có thông tin": 21, "không nhìn thấy": 0, "không thể xác định": 2, "không tìm thấy": 122, "vui lòng cung cấp thêm": 5}
+  obvious_PII_redactions_in_examples: 0
+Warnings:
+  - 665 cặp có tutor đứng trước student trong thứ tự CSV; đã khôi phục bằng turn_id.
+Skipped rows:
+  malformed_rows: 0
+  missing_conversation_id: 0
+  missing_content: 0
+  unknown_role: 0
+  unmatched_student_rows: 0
+  unmatched_tutor_rows: 0
+Output files:
+  evidence/summary.json
+  evidence/examples.csv
+  evidence/analysis_log.txt
+  evidence/evidence.md

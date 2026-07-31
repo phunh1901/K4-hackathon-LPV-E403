@@ -1,0 +1,122 @@
+{
+  "total_qa_pairs": 1261,
+  "summary_requests": 159,
+  "summary_without_citations": 101,
+  "visual_requests": 70,
+  "visual_failures": 10,
+  "generated_at": "2026-07-31T07:27:05.867408+00:00",
+  "input_file": "data/vlearn-pack/chatlog/chat_history_anonymized_for_hackathon.csv",
+  "keyword_rules": {
+    "match_behavior": "Unicode NFKC + case-insensitive literal substring matching; summary/visual rules inspect student_prompt and failure rules inspect tutor_answer.",
+    "summary_request": [
+      "tóm tắt",
+      "tóm gọn",
+      "tổng hợp",
+      "summary",
+      "ý chính",
+      "nội dung chính",
+      "cần nhớ",
+      "cần học",
+      "ghi chú",
+      "note"
+    ],
+    "visual_request": [
+      "hình",
+      "ảnh",
+      "bảng",
+      "biểu đồ",
+      "sơ đồ",
+      "khoanh",
+      "mũi tên",
+      "trục",
+      "nhánh màu",
+      "phần này",
+      "cái này"
+    ],
+    "visual_failure": [
+      "không thể xác định",
+      "không nhìn thấy",
+      "không có thông tin",
+      "không tìm thấy",
+      "vui lòng cung cấp thêm"
+    ],
+    "citation_empty": {
+      "sentinels": [
+        "",
+        "[]",
+        "n/a",
+        "na",
+        "nan",
+        "none",
+        "null",
+        "{}"
+      ],
+      "json_semantics": "null, empty strings, empty lists/dicts, or containers whose values are all semantically empty"
+    }
+  },
+  "rows_loaded": 2522,
+  "input_sha256": "400ce4ce5c1c58189be9ca0630bd517ca69cfcac637f0f802edec70f4f796cad",
+  "detected_columns": {
+    "conversation_id": "conversation_id",
+    "turn_id": "turn_id",
+    "role": "role",
+    "content": "content",
+    "citations": "citations",
+    "timestamp": "message_created_at",
+    "message_id": "message_id"
+  },
+  "pairing_method": "Ghép theo (conversation_id, turn_id); mỗi turn hợp lệ ghép student với tutor thuộc cùng turn.",
+  "pairing_diagnostics": {
+    "unmatched_student_rows": 0,
+    "unmatched_tutor_rows": 0,
+    "tutor_before_student_in_input": 665,
+    "qa_pairs": 1261,
+    "fallback_rows": 0
+  },
+  "skipped_rows": {},
+  "citation_empty_pairs": 582,
+  "citation_nonempty_pairs": 679,
+  "summary_with_citations": 58,
+  "summary_request_rate": 0.12609,
+  "summary_without_citations_rate": 0.63522,
+  "visual_successes": 60,
+  "visual_failure_rate": 0.142857,
+  "visual_with_empty_citations": 30,
+  "visual_with_citations": 40,
+  "visual_failures_without_citations": 9,
+  "visual_failures_with_citations": 1,
+  "summary_visual_overlap": 4,
+  "neither_summary_nor_visual": 1036,
+  "counts_by_summary_keyword": {
+    "tóm tắt": 126,
+    "tóm gọn": 2,
+    "tổng hợp": 16,
+    "summary": 5,
+    "ý chính": 16,
+    "nội dung chính": 8,
+    "cần nhớ": 2,
+    "cần học": 3,
+    "ghi chú": 1,
+    "note": 11
+  },
+  "counts_by_visual_keyword": {
+    "hình": 30,
+    "ảnh": 24,
+    "bảng": 2,
+    "biểu đồ": 2,
+    "sơ đồ": 0,
+    "khoanh": 11,
+    "mũi tên": 0,
+    "trục": 1,
+    "nhánh màu": 1,
+    "phần này": 4,
+    "cái này": 3
+  },
+  "counts_by_failure_keyword": {
+    "không thể xác định": 2,
+    "không nhìn thấy": 0,
+    "không có thông tin": 21,
+    "không tìm thấy": 122,
+    "vui lòng cung cấp thêm": 5
+  }
+}
