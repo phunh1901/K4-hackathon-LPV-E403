@@ -811,6 +811,27 @@ function captureSnipImage(page) {
   output.getContext('2d').drawImage(source, sx, sy, sw, sh, 0, 0, output.width, output.height);
   return output.toDataURL('image/jpeg', .86);
 }
+
+function captureSlideImage(page) {
+  const source = $(`#pg${page} .pdf-canvas`);
+  if (!source || !source.width || !source.height) return null;
+  const scale = Math.min(1, 1600 / Math.max(source.width, source.height));
+  const output = document.createElement('canvas');
+  output.width = Math.max(1, Math.round(source.width * scale));
+  output.height = Math.max(1, Math.round(source.height * scale));
+  output.getContext('2d').drawImage(
+    source,
+    0,
+    0,
+    source.width,
+    source.height,
+    0,
+    0,
+    output.width,
+    output.height,
+  );
+  return output.toDataURL('image/jpeg', .86);
+}
 $('#snipNote').onclick = () => {
   const p = pageUnderSnip();
   const box = { ...snip };
@@ -1150,10 +1171,21 @@ async function requestQuiz(forPage) {
   renderChat();
   await new Promise(r => setTimeout(r, 50));
   try {
+    const pageEl = document.getElementById('pg' + page);
+    const textLayer = pageEl && pageEl.querySelector('.pdf-text-layer');
+    const slideText = textLayer ? (textLayer.textContent || '').trim().slice(0, 5000) : '';
+    const imageDataUrl = captureSlideImage(page);
     const res = await fetch('/api/agent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ document: DOC.file, page, mode: 'quiz', question: '' }),
+      body: JSON.stringify({
+        document: DOC.file,
+        page,
+        mode: 'quiz',
+        question: '',
+        slide_text: slideText,
+        image_data_url: imageDataUrl,
+      }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Backend trả lỗi ${res.status}`);
@@ -1201,10 +1233,15 @@ function quizCard(a, m, i) {
       // why_wrong xếp theo 3 phương án SAI, đã bỏ qua phương án đúng.
       const why = ok ? '' : (q.why_wrong || [])[p > q.correct ? p - 1 : p] || '';
       const fromSlide = q.origin === 'slide';
+      const sourceLabel = q.origin === 'vision'
+        ? `ảnh slide · trang ${q.page}`
+        : fromSlide
+          ? `slide · trang ${q.page}`
+          : 'lời giảng của thầy';
       fb = `<div class="qz-fb ${ok ? 'ok' : 'no'}">
         <div class="qz-verdict">${ok ? '✓ Chính xác' : '✗ Chưa đúng'}${why ? ' — ' + esc(why) : ''}</div>
         <div class="qz-src${fromSlide ? ' clickable' : ''}" ${fromSlide ? `data-qgoto="${q.page}" data-qquote="${esc(q.excerpt)}"` : ''}>
-          <span class="qz-src-tag">${fromSlide ? `slide · trang ${q.page}` : 'lời giảng của thầy'}</span>
+          <span class="qz-src-tag">${sourceLabel}</span>
           <span class="qz-src-q">${esc(q.excerpt)}</span>
           ${fromSlide ? '<span class="qz-src-go">xem trên slide →</span>' : ''}
         </div></div>`;
