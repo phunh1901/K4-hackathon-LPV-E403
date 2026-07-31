@@ -941,6 +941,7 @@ function conversationHistory() {
           content: m.text,
           document: m.document || DOC.file,
           page: m.ctxPage,
+          intent: m.intent,
         };
       }
       return {
@@ -1046,7 +1047,8 @@ async function send(text, opts = {}) {
   const controller = new AbortController();
   const page = opts.page || S.page;
   const history = conversationHistory();
-  S.chat.push({ role: 'user', text, ctxPage: page, document: DOC.file, snap: S.snap });
+  const userMessage = { role: 'user', text, ctxPage: page, document: DOC.file, snap: S.snap };
+  S.chat.push(userMessage);
   S.snap = null; renderAttach();
   renderChat();
 
@@ -1085,11 +1087,16 @@ async function send(text, opts = {}) {
 
     if (epoch !== S.chatEpoch || controller.signal.aborted) return;
     removeChatMessage(typingMessage);
+    userMessage.intent = a.analysis && a.analysis.intent;
+    const answerContext = a.context || {};
+    const answerPage = answerContext.reference_kind === 'full_document'
+      ? null
+      : answerContext.page || page;
     S.chat.push({
       role: 'ai',
       data: a,
       document: DOC.file,
-      ctxPage: (a.context && a.context.page) || page,
+      ctxPage: answerPage,
     });
   } catch (err) {
     if (epoch === S.chatEpoch) {

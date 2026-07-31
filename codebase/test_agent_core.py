@@ -81,6 +81,10 @@ class AgentCoreTests(unittest.TestCase):
         })
         messages = agent_core._build_messages(payload, "summary", "[PAGE 1] Nội dung")
         self.assertIn('"exact_body_items": 10', messages[-1]["content"])
+        self.assertIn('"summary_scope": "full_document"', messages[-1]["content"])
+        self.assertIn('"revision_of_previous_summary": true', messages[-1]["content"])
+        self.assertIn('"reference_page": null', messages[-1]["content"])
+        self.assertNotIn("trang 1", messages[-2]["content"])
 
     def test_mojibake_is_repaired_and_bad_image_text_falls_back_to_pdf(self):
         self.assertEqual(
@@ -149,6 +153,8 @@ class AgentCoreTests(unittest.TestCase):
         self.assertEqual(captured["payload"]["_summary_preferences"]["estimated_reading_minutes"], 2)
         self.assertEqual(answer["summary"]["coverage_pages"], len(self.pages))
         self.assertGreaterEqual(answer["summary"]["estimated_reading_minutes"], 1)
+        self.assertEqual(answer["context"]["reference_kind"], "full_document")
+        self.assertIsNone(answer["context"]["page"])
 
     def test_explicit_slide_reference_overrides_viewed_page(self):
         captured = {}

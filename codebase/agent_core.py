@@ -229,6 +229,12 @@ def classify(payload: Dict[str, Any]) -> str:
     return "question"
 
 
+def _is_summary_history_item(item: Dict[str, Any]) -> bool:
+    return item.get("intent") == "summary" or (
+        item.get("role") == "user" and bool(SUMMARY.search(str(item.get("content") or "")))
+    )
+
+
 def _clean_history(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Return a bounded, display-only conversation window.
 
@@ -572,6 +578,10 @@ trả clarify + scope=uncertain và nói thiếu nguồn gì; không bù bằng 
 không trực tiếp trả lời câu hỏi.
 Đáp ứng đúng nhu cầu về độ dài, đối tượng đọc và định dạng trong câu hỏi.
 Nếu REQUEST CONTEXT có exact_body_items, body BẮT BUỘC có đúng số phần tử đó.
+Khi summary_scope là full_document, phải tóm tắt toàn bộ tài liệu và bỏ qua trang
+UI đang mở. Khi revision_of_previous_summary là true, hãy sửa bản tóm tắt trước
+theo yêu cầu mới mà không đổi phạm vi sang slide hiện tại, trừ khi người học nêu
+rõ số trang/slide.
 Mọi ý kiến thức phải có citation [trang N] với N xuất hiện trong EVIDENCE.
 Giữ nguyên ít nhất một lần các thuật ngữ/nhãn tiếng Anh liên quan có trong EVIDENCE,
 đặc biệt: LLM, token, attention, context, compute, metric, Automate, Augment, Rule,
@@ -597,10 +607,15 @@ không dùng ký tự | và không xuống dòng trong chuỗi. Vi phạm sẽ l
     request_context = {
         "detected_intent": "summary" if intent == "summary" else "question",
         "document": payload.get("document"),
-        "reference_kind": reference.get("kind"),
-        "reference_page": reference.get("page"),
+        "reference_kind": "full_document" if intent == "summary" else reference.get("kind"),
+        "reference_page": None if intent == "summary" else reference.get("page"),
     }
     if intent == "summary":
+        history = _clean_history(payload)
+        request_context["summary_scope"] = "full_document"
+        request_context["revision_of_previous_summary"] = any(
+            _is_summary_history_item(item) for item in history[-4:]
+        )
         request_context["summary_purpose"] = summary_profile.get("purpose")
         request_context["reading_budget_minutes"] = summary_profile.get("estimated_reading_minutes")
         request_context["maximum_body_items"] = summary_profile.get("max_items", 5)
@@ -622,7 +637,7 @@ không dùng ký tự | và không xuống dòng trong chuỗi. Vi phạm sẽ l
         context_bits = []
         if item.get("document"):
             context_bits.append(str(item["document"]))
-        if item.get("page"):
+        if item.get("page") and not (intent == "summary" and _is_summary_history_item(item)):
             context_bits.append(f"trang {item['page']}")
         prefix = f"[Ngữ cảnh lượt trước: {', '.join(context_bits)}]\n" if context_bits else ""
         messages.append({"role": item["role"], "content": prefix + item["content"]})
@@ -1068,8 +1083,10 @@ def _normalize_answer(
             "scope": scope,
         },
         "context": {
-            "page": (reference or {}).get("page"),
-            "reference_kind": (reference or {}).get("kind"),
+            "page": None if intent == "summary" else (reference or {}).get("page"),
+            "reference_kind": (
+                "full_document" if intent == "summary" else (reference or {}).get("kind")
+            ),
         },
         "grounding": {
             "claims_with_citation": cited_claims,
@@ -1253,8 +1270,8 @@ def run_agent(
     answer.setdefault("context", {})
     answer["context"].update({
         "document": document,
-        "page": reference.get("page"),
-        "reference_kind": reference.get("kind"),
+        "page": None if intent == "summary" else reference.get("page"),
+        "reference_kind": "full_document" if intent == "summary" else reference.get("kind"),
         "history_messages_used": len(history),
     })
     event = {
