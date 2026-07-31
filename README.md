@@ -1,5 +1,24 @@
 # Mini Hackathon AI — Batch 03
 
+## Nhóm thực hiện
+
+| Thành viên | Phần phụ trách |
+|---|---|
+| Long | Spec, mining/evidence report, API orchestration và fallback |
+| Phú | Summary pipeline và prompt engineering |
+| Việt | Giao diện PDF, bôi đen/crop và vision pipeline |
+
+Mã học viên chưa được ghi trong working tree; tên dùng trong phân công và reflection là tên đã có trong `spec.md`.
+
+## Artifact đã nộp
+
+- `spec.md`: AI Spec chốt và changelog.
+- `demo-slides.pdf`: deck demo 6 trang.
+- `codebase/`: functional prototype; mock chỉ bật có chủ đích bằng `?mock=1`.
+- `eval/`: golden set, output, trace và các lượt chạy; số liệu xấu được giữ lại để audit.
+- `validation/`: log trạng thái user test và protocol ghi nhận feedback.
+- `reflection/`: reflection cá nhân của Long, Phú và Việt.
+
 **SPEC → Prototype → Demo.** Đây không phải cuộc thi code — đây là cuộc thi **tư duy sản phẩm AI**.
 
 - Thời lượng: **1,5 ngày** (một ngày build + một buổi demo)
