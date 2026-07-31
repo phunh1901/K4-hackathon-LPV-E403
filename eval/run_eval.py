@@ -135,8 +135,9 @@ def write_report(run_id: str, records: List[Dict[str, Any]], output: Path) -> No
         + " — đây là con số phản ánh năng lực thật của model.",
         f"- Case do rule quyết định: {rule_passed}/{len(rule_rows)}"
         + (f" = {rule_passed / len(rule_rows):.0%}" if rule_rows else "")
-        + " — rule chốt cứng nhóm logistics (deadline/link nộp) và trang không tồn tại;"
-        " các case này pass theo thiết kế nên không tính là thành tích của AI.",
+        + " — rule chỉ xử lý đầu vào tất định (trang không tồn tại, ảnh thiếu/quá nhỏ,"
+        " hoặc yêu cầu tóm tắt hoàn toàn chưa rõ); các case này pass theo thiết kế"
+        " nên không tính là thành tích của AI.",
         f"- Citation đối chiếu được với text thật của trang: **{verified}/{total_sources}"
         + (f" = {verified / total_sources:.0%}**" if total_sources else "**"),
         "",

@@ -537,6 +537,7 @@ input{font:inherit}
 .tutor-head{display:flex;align-items:center;gap:9px;padding:14px 16px;border-bottom:1px solid var(--line-2)}
 .bot-ic{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--accent);color:#fff;flex:none}
 .tutor-title{flex:1;min-width:0}
+.reset-chat{background:var(--line-2);color:var(--ink-2)}
 .tt-main{font-size:16.5px;font-weight:800;letter-spacing:-.2px}
 .tt-sub{font-size:12px;color:var(--ink-3)}
 
@@ -668,6 +669,8 @@ input{font:inherit}
 .send{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--accent);color:#fff;flex:none;transition:.15s}
 .send:hover{filter:brightness(1.1)}
 .send:active{transform:scale(.94)}
+.send.is-stop{background:var(--danger)}
+.send.is-stop svg{fill:currentColor;stroke:none}
 
 
 
