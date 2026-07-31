@@ -346,6 +346,7 @@ async function callModel(
   intent: string,
   messages: unknown[],
   signal: AbortSignal,
+  onDelta?: (delta: string) => void,
 ): Promise<{ answer: JsonRecord; model: string; requestId: string | null }> {
   const provider = providerConfig(env, intent);
   const requestBody: JsonRecord = {
@@ -354,8 +355,9 @@ async function callModel(
     temperature: 0.1,
     max_tokens: intent === "quiz" ? 6000 : 5000,
     response_format: { type: "json_object" },
-    stream: false,
+    stream: Boolean(onDelta),
   };
+  if (onDelta) requestBody.stream_options = { include_usage: true };
   if (provider.baseUrl.includes("deepseek.com")) {
     requestBody.thinking = { type: "disabled" };
   }
@@ -368,15 +370,73 @@ async function callModel(
     body: JSON.stringify(requestBody),
     signal,
   });
-  const raw = (await response.json().catch(() => ({}))) as JsonRecord;
   if (!response.ok) {
+    const raw = (await response.json().catch(() => ({}))) as JsonRecord;
     const error = raw.error as JsonRecord | undefined;
     throw new AgentError(String(error?.message ?? `Model trả lỗi ${response.status}.`));
   }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (onDelta && contentType.includes("text/event-stream")) {
+    if (!response.body) throw new AgentError("Model không trả stream.");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let content = "";
+    let model = provider.model;
+    let requestId = response.headers.get("x-request-id");
+
+    const consumeLine = (rawLine: string) => {
+      const line = rawLine.trim();
+      if (!line.startsWith("data:")) return;
+      const data = line.slice(5).trim();
+      if (!data || data === "[DONE]") return;
+      let event: JsonRecord;
+      try {
+        event = JSON.parse(data) as JsonRecord;
+      } catch {
+        return;
+      }
+      if (event.error) {
+        const error = event.error as JsonRecord;
+        throw new AgentError(
+          String(error.message ?? "Model stream trả lỗi."),
+        );
+      }
+      if (event.model) model = String(event.model);
+      if (event.id) requestId = String(event.id);
+      const choices = event.choices as Array<JsonRecord> | undefined;
+      const delta = choices?.[0]?.delta as JsonRecord | undefined;
+      const token = delta?.content;
+      if (typeof token === "string" && token) {
+        content += token;
+        onDelta(token);
+      }
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() ?? "";
+      lines.forEach(consumeLine);
+      if (done) break;
+    }
+    if (buffer.trim()) consumeLine(buffer);
+    if (!content) throw new AgentError("Model không trả nội dung.");
+    return {
+      answer: parseModelJson(content),
+      model,
+      requestId: requestId || null,
+    };
+  }
+
+  const raw = (await response.json().catch(() => ({}))) as JsonRecord;
   const choices = raw.choices as Array<JsonRecord> | undefined;
   const message = choices?.[0]?.message as JsonRecord | undefined;
   const content = String(message?.content ?? "");
   if (!content) throw new AgentError("Model không trả nội dung.");
+  if (onDelta) onDelta(content);
   return {
     answer: parseModelJson(content),
     model: String(raw.model ?? provider.model),
@@ -738,6 +798,7 @@ export async function runAgent(
   payload: JsonRecord,
   env: RuntimeEnv,
   signal: AbortSignal,
+  onDelta?: (delta: string) => void,
 ): Promise<JsonRecord> {
   const question = String(payload.question ?? "").trim();
   const mode = String(payload.mode ?? "").trim();
@@ -845,7 +906,7 @@ export async function runAgent(
   const effectivePayload = { ...payload, document, page };
   const evidence = buildEvidence(effectivePayload, intent, pages, page);
   const messages = buildMessages(effectivePayload, intent, evidence, history, summary);
-  let modelResult = await callModel(env, intent, messages, signal);
+  let modelResult = await callModel(env, intent, messages, signal, onDelta);
 
   if (
     summary?.exact_items &&

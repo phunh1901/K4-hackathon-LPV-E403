@@ -76,7 +76,16 @@ function handleAgentStream(request: Request, env: Env): Response {
       controller.enqueue(streamEvent("start"));
       try {
         const payload = await parsePayload(request);
-        const answer = await runAgent(payload, env, request.signal);
+        const answer = await runAgent(
+          payload,
+          env,
+          request.signal,
+          (delta) => {
+            if (!request.signal.aborted && delta) {
+              controller.enqueue(streamEvent("delta", { delta }));
+            }
+          },
+        );
         controller.enqueue(streamEvent("result", { data: answer }));
       } catch (error) {
         if (!request.signal.aborted) {

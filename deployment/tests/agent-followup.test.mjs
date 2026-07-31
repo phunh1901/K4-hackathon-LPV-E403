@@ -254,3 +254,56 @@ test("quiz mode uses detailed vision structure for the visual decision tree on D
     globalThis.fetch = originalFetch;
   }
 });
+
+test("chat requests forward provider SSE deltas before returning the validated result", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestBody;
+  const modelJson = JSON.stringify({
+    intent: "question",
+    scope: "course",
+    conf: 80,
+    kind: "answered",
+    body: ["Problem Discovery giúp làm rõ bài toán [trang 2]"],
+    sources: [],
+  });
+  const splitAt = Math.floor(modelJson.length / 2);
+  const chunks = [modelJson.slice(0, splitAt), modelJson.slice(splitAt)];
+
+  globalThis.fetch = async (_url, init) => {
+    requestBody = JSON.parse(init.body);
+    const sse = chunks
+      .map((content, index) => `data: ${JSON.stringify({
+        id: "stream-request",
+        model: "stream-model",
+        choices: [{ delta: { content }, index: 0 }],
+      })}\n\n`)
+      .join("") + "data: [DONE]\n\n";
+    return new Response(sse, {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+    });
+  };
+
+  const deltas = [];
+  try {
+    const answer = await runAgent({
+      question: "Problem Discovery dùng để làm gì?",
+      document: "d2-slide-hackathon.pdf",
+      page: 2,
+    }, {
+      AI_API_KEY: "test-key",
+      AI_BASE_URL: "https://example.test/v1",
+      AI_MODEL: "test-model",
+    }, new AbortController().signal, (delta) => deltas.push(delta));
+
+    assert.equal(requestBody.stream, true);
+    assert.deepEqual(requestBody.stream_options, { include_usage: true });
+    assert.equal(deltas.length, 2);
+    assert.equal(deltas.join(""), modelJson);
+    assert.equal(answer.kind, "answered");
+    assert.match(answer.body[0], /Problem Discovery/);
+    assert.equal(answer.meta.model, "stream-model");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
