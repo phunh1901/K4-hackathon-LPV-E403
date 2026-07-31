@@ -175,7 +175,7 @@ test("quiz mode returns a useful note without calling the model for a thin page"
   }
 });
 
-test("quiz mode uses vision description before the quiz LLM for a thin page", async () => {
+test("quiz mode uses detailed vision structure for the visual decision tree on Day 2 page 21", async () => {
   const originalFetch = globalThis.fetch;
   const requests = [];
   globalThis.fetch = async (_url, init) => {
@@ -184,26 +184,35 @@ test("quiz mode uses vision description before the quiz LLM for a thin page", as
     const isVision = Array.isArray(request.messages[1].content);
     const content = isVision
       ? {
-          description: "Trang tiêu đề giới thiệu AI IN ACTION - HACKATHON.",
-          visible_text: "AI IN ACTION - HACKATHON",
-          key_facts: ["Nội dung nhìn thấy là tiêu đề AI IN ACTION - HACKATHON."],
+          description: "Cây quyết định lựa chọn Rule, Workflow hoặc Agent.",
+          visible_text: "Bài toán có quy tắc rõ ràng? CÓ KHÔNG Rule Workflow Agent",
+          elements: [
+            { id: "n1", label: "Bài toán có quy tắc rõ ràng?", kind: "node", details: "Nút đầu" },
+            { id: "n2", label: "Rule", kind: "node", details: "Kết quả đơn giản" },
+            { id: "n3", label: "Workflow", kind: "node", details: "Quy trình nhiều bước" },
+          ],
+          relationships: [
+            { from: "n1", to: "n2", label: "CÓ" },
+            { from: "n1", to: "n3", label: "KHÔNG" },
+          ],
+          key_facts: ["Nhánh CÓ từ n1 dẫn tới Rule."],
         }
       : {
           note: "",
           questions: [{
-            q: "Tiêu đề nào xuất hiện trên trang?",
+            q: "Khi bài toán có quy tắc rõ ràng, cây quyết định dẫn tới lựa chọn nào?",
             options: [
-              "AI IN ACTION - HACKATHON",
-              "Machine Learning Basics",
-              "Data Engineering Lab",
-              "Final Examination",
+              "Rule",
+              "Workflow",
+              "Agent",
+              "Không chọn giải pháp",
             ],
             correct: 0,
-            excerpt: "AI IN ACTION - HACKATHON",
+            excerpt: "n1 --CÓ--> n2",
             why_wrong: [
-              "Không xuất hiện trong mô tả ảnh.",
-              "Không xuất hiện trong mô tả ảnh.",
-              "Không xuất hiện trong mô tả ảnh.",
+              "Nhánh CÓ dẫn tới Rule.",
+              "Nhánh CÓ dẫn tới Rule.",
+              "Cây vẫn đưa ra lựa chọn.",
             ],
           }],
         };
@@ -222,8 +231,8 @@ test("quiz mode uses vision description before the quiz LLM for a thin page", as
       question: "",
       mode: "quiz",
       document: "d2-slide-hackathon.pdf",
-      page: 1,
-      slide_text: "AI IN ACTION - HACKATHON",
+      page: 21,
+      slide_text: "Cây quyết định: Lựa chọn cấp độ giải pháp — Rule, Workflow hay Agent",
       image_data_url: "data:image/jpeg;base64,dGVzdA==",
     }, {
       AI_API_KEY: "text-key",
@@ -239,7 +248,7 @@ test("quiz mode uses vision description before the quiz LLM for a thin page", as
     assert.match(requests[1].messages[1].content, /VISION DESCRIPTION/);
     assert.equal(answer.kind, "quiz");
     assert.equal(answer.questions.length, 1);
-    assert.equal(answer.questions[0].origin, "slide");
+    assert.equal(answer.questions[0].origin, "vision");
     assert.equal(answer.meta.vision_model, "vision-model");
   } finally {
     globalThis.fetch = originalFetch;
